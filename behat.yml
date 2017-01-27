@@ -1,0 +1,7 @@
+default:
+    suites:
+        domain:
+            contexts:
+                - Tests\SyliusCart\Behat\Context\Domain\CartContext
+            filters:
+                tags: "@domain"
