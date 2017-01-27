@@ -6,14 +6,14 @@ Feature: Adding a simple product of given quantity to the cart
     Background:
         Given the store operates in "USD" currency
 
-    @domain
+    @domain @todo
     Scenario: Adding a multiple simple products to the cart
         Given the store has a product "T-shirt banana" priced at "$10.00"
         When I add 5 products "T-shirt banana" to the cart
         Then there should be one item in my cart
         And my cart's total should be "$50.00"
 
-    @domain
+    @domain @todo
     Scenario: Adding a multiple simple products to the cart
         Given the store has a product "T-shirt banana" priced at "$10.00"
         And the store has a product "T-shirt apple" priced at "$20.00"

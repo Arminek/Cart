@@ -4,4 +4,4 @@ default:
             contexts:
                 - Tests\SyliusCart\Behat\Context\Domain\CartContext
             filters:
-                tags: "@domain"
+                tags: "@domain && ~@todo"
