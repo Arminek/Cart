@@ -1,0 +1,2 @@
+suites:
+    cart: { namespace: SyliusCart, psr4_prefix: SyliusCart, spec_path: tests/, src_path: src/ }
