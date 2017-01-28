@@ -10,7 +10,7 @@ Feature: Clearing cart
         And I have 10 products "T-shirt banana" in the cart
         And I have 2 products "T-shirt apple" in the cart
 
-    @domain
+    @domain @todo
     Scenario: Clearing cart
         When I clear my cart
         Then my cart should be empty

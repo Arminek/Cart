@@ -8,20 +8,20 @@ Feature: All of my cart's values get updated to the currency of my choosing
         And the store has a product "The Pug Mug" priced at "$10.00"
         And the store has a product "The Apple Mug" priced at "$20.00"
 
-    @domain
+    @domain @todo
     Scenario: Changing the currency of my cart
         Given I have product "The Pug Mug" in the cart
         When I switch to the "EUR" currency
         Then my cart's total should be "$20.00"
 
-    @domain
+    @domain @todo
     Scenario: Changing back to the base currency
         Given I have product "The Pug Mug" in the cart
         When I switch to the "EUR" currency
         And I switch back to the "USD" currency
         Then my cart's total should be "$10.00"
 
-    @domain
+    @domain @todo
     Scenario: Changing the currency of my cart more than once
         Given I have product "The Pug Mug" in the cart
         When I switch to the "EUR" currency
@@ -29,7 +29,7 @@ Feature: All of my cart's values get updated to the currency of my choosing
         And I switch back to the "EUR" currency
         Then my cart's total should be "$20.00"
 
-    @domain
+    @domain @todo
     Scenario: Changing the currency of my cart with multiple products
         Given I have 10 products "The Pug Mug" in the cart
         And I have product "The Apple Mug" in the cart
