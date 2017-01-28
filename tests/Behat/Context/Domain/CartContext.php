@@ -10,10 +10,18 @@ use Broadway\Domain\DomainMessage;
 use Money\Currency;
 use Money\Money;
 use Ramsey\Uuid\Uuid;
+use SyliusCart\Domain\Event\CartCleared;
 use SyliusCart\Domain\Event\CartInitialized;
 use SyliusCart\Domain\Event\CartItemAdded;
 use SyliusCart\Domain\Event\CartItemQuantityIncreased;
+use SyliusCart\Domain\Event\CartItemRemoved;
 use SyliusCart\Domain\Event\CartRecalculated;
+use SyliusCart\Domain\Exception\CartAlreadyEmptyException;
+use SyliusCart\Domain\Exception\CartCurrencyMismatchException;
+use SyliusCart\Domain\Exception\CartItemNotFoundException;
+use SyliusCart\Domain\Exception\InvalidCartItemQuantityException;
+use SyliusCart\Domain\Exception\InvalidCartItemUnitPriceException;
+use SyliusCart\Domain\Exception\ProductCodeCannotBeEmptyException;
 use SyliusCart\Domain\Model\Cart;
 use SyliusCart\Domain\Model\CartItem;
 use SyliusCart\Domain\ValueObject\CartItemQuantity;
@@ -76,16 +84,19 @@ final class CartContext implements Context
      */
     public function iHaveCartWithProduct(string $productName): void
     {
-        $this->cart = new Cart();
-        $cartId = Uuid::uuid4();
-        $this->cart->apply(CartInitialized::occur($cartId, new Money(0, $this->storeCurrency)));
+        $this->initCartWithProducts([$productName => 1]);
+    }
 
-        $productCode = ProductCode::fromString($this->getCodeFromName($productName));
-        $quantity = CartItemQuantity::create(1);
-        $price = new Money($this->productCatalogue[(string) $productCode]['price'], $this->storeCurrency);
-        $cartItem = CartItem::create($productCode, $quantity, $price);
-
-        $this->cart->apply(CartItemAdded::occur($cartId, $cartItem));
+    /**
+     * @Given I have :firstQuantity products :firstProductName and :secondQuantity products :secondProductName in the cart
+     */
+    public function iHaveProductsAndProductsInTheCart(
+        string $firstQuantity,
+        string $firstProductName,
+        string $secondQuantity,
+        string $secondProductName
+    ): void {
+        $this->initCartWithProducts([$firstProductName => (int) $firstQuantity, $secondProductName => (int) $secondQuantity]);
     }
 
     /**
@@ -101,11 +112,28 @@ final class CartContext implements Context
     }
 
     /**
+     * @When I clear my cart
+     */
+    public function iClearMyCart()
+    {
+        $this->cart->clear();
+    }
+
+    /**
+     * @When I remove product :productName from the cart
+     */
+    public function iRemoveProductFromTheCart(string $productName): void
+    {
+        $cartItemId = $this->productCatalogue[$this->getCodeFromName($productName)]['cartItemId'];
+        $this->cart->removeCartItem((string) $cartItemId);
+    }
+
+    /**
      * @Then there should be one item in my cart
      */
     public function thereShouldBeOneItemInMyCart(): void
     {
-        $this->assertCartItemAddedEventsCount(1);
+        $this->assertCartItemCount(1);
     }
 
     /**
@@ -113,7 +141,7 @@ final class CartContext implements Context
      */
     public function thereShouldBeTwoItemInMyCart(): void
     {
-        $this->assertCartItemAddedEventsCount(2);
+        $this->assertCartItemCount(2);
     }
 
     /**
@@ -179,6 +207,131 @@ final class CartContext implements Context
                 )
             );
         }
+    }
+
+    /**
+     * @Then my cart should be empty
+     */
+    public function myCartShouldBeEmpty(): void
+    {
+        $cartClearedEvents = $this->getCartItemClearedEvents();
+
+        if (0 === count($cartClearedEvents)) {
+            $this->assertCartItemCount(0);
+        }
+    }
+
+    /**
+     * @Then I should not be able to add product with empty code
+     */
+    public function iShouldNotBeAbleToAddProductWithEmptyCode(): void
+    {
+        try {
+            $this->cart->addCartItem('', 10, 100, $this->storeCurrency->getCode());
+        } catch (ProductCodeCannotBeEmptyException $exception) {
+            return;
+        }
+
+        throw new \RuntimeException('I should not be able to add product with empty code.');
+    }
+
+    /**
+     * @Then I should not be able to add product with quantity below zero
+     */
+    public function iShouldNotBeAbleToAddProductWithQuantityBelowZero(): void
+    {
+        $catch = false;
+        try {
+            $this->cart->addCartItem('code', 0, 100, $this->storeCurrency->getCode());
+        } catch (InvalidCartItemQuantityException $exception) {
+            $catch = true;
+        }
+
+        try {
+            $this->cart->addCartItem('code', -10, 100, $this->storeCurrency->getCode());
+        } catch (InvalidCartItemQuantityException $exception) {
+            $catch = $catch && true;
+        }
+
+        if ($catch) {
+            return;
+        }
+
+        throw new \RuntimeException('I should not be able to add product with quantity below or equals zero.');
+    }
+
+    /**
+     * @Then I should not be able to add product in :currencyCode currency
+     */
+    public function iShouldNotBeAbleToAddProductInCurrency(string $currencyCode): void
+    {
+        try {
+            $this->cart->addCartItem('code', 10, 100, $currencyCode);
+        } catch (CartCurrencyMismatchException $exception) {
+            return;
+        }
+
+        throw new \RuntimeException(sprintf(
+            'I should not be able to add product with different currency. Store currency "%s"',
+            $this->storeCurrency->getCode()
+        ));
+    }
+
+    /**
+     * @Then I should not be able to add product :productName
+     */
+    public function iShouldNotBeAbleToAddProduct(string $productName): void
+    {
+        $productCode = $this->getCodeFromName($productName);
+        $productPrice = $this->productCatalogue[$productCode]['price'];
+        try {
+            $this->cart->addCartItem($productCode, 10, (int) $productPrice, $this->storeCurrency->getCode());
+        } catch (InvalidCartItemUnitPriceException $exception) {
+            return;
+        }
+
+        throw new \RuntimeException('I should not be able to add product with unit price below zero.');
+    }
+
+    /**
+     * @Then I should not be able to remove product :productName
+     */
+    public function iShouldNotBeAbleToRemoveProduct(string $productName): void
+    {
+        $fakeId = $this->getCodeFromName($productName);
+
+        $catch = false;
+        try {
+            $this->cart->removeCartItem($fakeId);
+        } catch (\InvalidArgumentException $exception) {
+            $catch = true;
+        }
+
+        try {
+            $this->cart->removeCartItem(Uuid::uuid4()->toString());
+        } catch (CartItemNotFoundException $exception) {
+            $catch = $catch && true;
+        }
+
+        if ($catch) {
+            return;
+        }
+
+        throw new \RuntimeException('I should not be able to remove product which does not exist.');
+    }
+
+    /**
+     * @Then I should not be able to clear cart which is already empty
+     */
+    public function iShouldNotBeAbleToClearCartWhichIsAlreadyEmpty()
+    {
+        try {
+            $this->cart->clear();
+        } catch (CartAlreadyEmptyException $exception) {
+            return;
+        }
+
+        throw new \RuntimeException('I should not be able clear already empty cart.');
     }
 
     /**
@@ -276,6 +429,26 @@ final class CartContext implements Context
     /**
      * @return array
      */
+    private function getCartItemRemovedEvents(): array
+    {
+        return array_filter($this->getEvents(), function ($event) {
+            return $event instanceof CartItemRemoved;
+        });
+    }
+
+    /**
+     * @return array
+     */
+    private function getCartItemClearedEvents(): array
+    {
+        return array_filter($this->getEvents(), function ($event) {
+            return $event instanceof CartCleared;
+        });
+    }
+
+    /**
+     * @return array
+     */
     private function getCartRecalculatedEvents(): array
     {
         return array_filter($this->getEvents(), function ($event) {
@@ -296,14 +469,40 @@ final class CartContext implements Context
     /**
      * @param int $count
      */
-    private function assertCartItemAddedEventsCount(int $count): void
+    private function assertCartItemCount(int $count): void
     {
         $cartItemAddedEvents = $this->getCartItemAddedEvents();
+        $cartItemRemovedEvents = $this->getCartItemRemovedEvents();
+        $addedItemCount = count($cartItemAddedEvents);
+        $removedItemCount = count($cartItemRemovedEvents);
 
-        if ($count !== count($cartItemAddedEvents)) {
+        $cartItemCount = $addedItemCount - $removedItemCount;
+
+        if ($count !== $cartItemCount) {
             throw new \RuntimeException(
                 sprintf('I have "%s" cart items, but I should have "%s".', count($cartItemAddedEvents), $count)
             );
         }
+    }
+
+    /**
+     * @param array $products
+     */
+    private function initCartWithProducts(array $products): void
+    {
+        $this->cart = new Cart();
+        $cartId = Uuid::uuid4();
+        $this->cart->apply(CartInitialized::occur($cartId, new Money(0, $this->storeCurrency)));
+
+        foreach ($products as $productName => $quantity) {
+            $productCode = ProductCode::fromString($this->getCodeFromName($productName));
+            $quantity = CartItemQuantity::create($quantity);
+            $price = new Money($this->productCatalogue[(string) $productCode]['price'], $this->storeCurrency);
+            $cartItem = CartItem::create($productCode, $quantity, $price);
+            $this->productCatalogue[(string) $productCode]['cartItemId'] = (string) $cartItem->cartItemId();
+
+            $this->cart->apply(CartItemAdded::occur($cartId, $cartItem));
+        }
+
     }
 }

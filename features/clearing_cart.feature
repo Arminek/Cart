@@ -7,10 +7,9 @@ Feature: Clearing cart
         Given the store operates in "USD" currency
         And the store has a product "T-shirt banana" priced at "$12.54"
         And the store has a product "T-shirt apple" priced at "$10.00"
-        And I have 10 products "T-shirt banana" in the cart
-        And I have 2 products "T-shirt apple" in the cart
+        And I have 10 products "T-shirt banana" and 2 products "T-shirt apple" in the cart
 
-    @domain @todo
+    @domain
     Scenario: Clearing cart
         When I clear my cart
         Then my cart should be empty

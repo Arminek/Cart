@@ -124,7 +124,7 @@ final class CartItemsSpec extends ObjectBehavior
         $this->count()->shouldReturn(2);
     }
 
-    function it_check_if_cart_item_with_given_product_code_exists()
+    function it_checks_if_cart_item_with_given_product_code_exists()
     {
         $mugCartItem = CartItem::create(ProductCode::fromString('Mug'), CartItemQuantity::create(2), Money::USD(10));
         $bookCartItem = CartItem::create(ProductCode::fromString('Book'), CartItemQuantity::create(20), Money::USD(100));
@@ -134,5 +134,17 @@ final class CartItemsSpec extends ObjectBehavior
         $this->existsWithProductCode(ProductCode::fromString('Mug'))->shouldReturn(true);
         $this->existsWithProductCode(ProductCode::fromString('Book'))->shouldReturn(true);
         $this->existsWithProductCode(ProductCode::fromString('Sticker'))->shouldReturn(false);
+    }
+
+    function it_knows_if_is_actually_empty_or_not()
+    {
+        $this->isEmpty()->shouldReturn(true);
+    }
+
+    function it_is_not_empty_if_is_initialized_with_cart_items()
+    {
+        $cartItem = CartItem::create(ProductCode::fromString('Mug'), CartItemQuantity::create(2), Money::USD(10));
+        $this->beConstructedThrough('fromArray', [[(string) $cartItem->cartItemId() => $cartItem]]);
+        $this->isEmpty()->shouldReturn(false);
     }
 }

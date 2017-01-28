@@ -64,4 +64,6 @@ interface CartItemCollection extends \Countable, \IteratorAggregate
     public function findAll(): array;
 
     public function clear(): void;
+
+    public function isEmpty(): bool;
 }
