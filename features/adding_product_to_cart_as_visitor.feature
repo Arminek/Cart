@@ -12,7 +12,7 @@ Feature: Adding a product to the cart
     Scenario: Adding a product to the cart
         Given I have empty cart
         When I add product "T-shirt banana" to the cart
-        Then there should be one item in my cart
+        Then I should have 1 "T-shirt banana" in my cart
         And my cart's total should be "$10.00"
 
     @domain

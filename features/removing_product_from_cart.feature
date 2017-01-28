@@ -7,25 +7,23 @@ Feature: Removing cart item from cart
         Given the store operates in "USD" currency
         And the store has a product "T-shirt banana" priced at "$12.54"
         And the store has a product "T-shirt apple" priced at "$10.00"
+        And I have 10 products "T-shirt banana" and 2 products "T-shirt apple" in the cart
 
-    @domain @todo
-    Scenario: Removing cart item
-        Given I have product "T-shirt banana" in the cart
+    @domain
+    Scenario: Removing one cart item
         When I remove product "T-shirt banana" from the cart
+        Then there should be one item in my cart
+        And my cart's total should be "$20.00"
+
+    @domain
+    Scenario: Removing two cart item
+        When I remove product "T-shirt banana" from the cart
+        And I remove product "T-shirt apple" from the cart
         Then my cart should be empty
         And my cart's total should be "$0.00"
 
-    @domain @todo
-    Scenario: Removing cart item with multiple cart items
-        Given I have 10 products "T-shirt banana" in the cart
-        When I remove product "T-shirt banana" from the cart
-        Then my cart should be empty
-        And my cart's total should be "$0.00"
-
-    @domain @todo
+    @domain
     Scenario: Removing cart item with multiple and different cart items
-        Given I have 10 products "T-shirt banana" in the cart
-        And I have 2 products "T-shirt apple" in the cart
         When I remove product "T-shirt banana" from the cart
         Then there should be one item in my cart
         And my cart's total should be "$20.00"

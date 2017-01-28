@@ -142,4 +142,12 @@ final class CartItems implements CartItemCollection
     {
         return $this->items->count();
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isEmpty(): bool
+    {
+        return 0 === $this->items->count();
+    }
 }
