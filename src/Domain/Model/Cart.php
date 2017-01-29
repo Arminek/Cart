@@ -30,7 +30,7 @@ use SyliusCart\Domain\ValueObject\ProductCode;
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class Cart extends EventSourcedAggregateRoot
+final class Cart extends EventSourcedAggregateRoot implements CartContract
 {
     /**
      * @var UuidInterface
@@ -73,14 +73,14 @@ final class Cart extends EventSourcedAggregateRoot
      * @param Converter $converter
      * @param AvailableCurrenciesProviderInterface $availableCurrenciesProvider
      *
-     * @return Cart
+     * @return CartContract
      */
     public static function initialize(
         UuidInterface $cartId,
         string $currencyCode,
         Converter $converter,
         AvailableCurrenciesProviderInterface $availableCurrenciesProvider
-    ): self {
+    ): CartContract {
         $cart = new self($converter, $availableCurrenciesProvider);
 
         $cartCurrency = new Currency($currencyCode);
@@ -98,12 +98,12 @@ final class Cart extends EventSourcedAggregateRoot
      * @param Converter $converter
      * @param AvailableCurrenciesProviderInterface $availableCurrenciesProvider
      *
-     * @return Cart
+     * @return CartContract
      */
     public static function createWithAdapters(
         Converter $converter,
         AvailableCurrenciesProviderInterface $availableCurrenciesProvider
-    ): self {
+    ): CartContract {
         return new self($converter, $availableCurrenciesProvider);
     }
 
@@ -187,6 +187,40 @@ final class Cart extends EventSourcedAggregateRoot
 
         $this->apply(CartCurrencyChanged::occur($this->cartId, $newCurrency, $oldCurrency));
         $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
+    }
+
+    /**
+     * @param string $cartItemId
+     * @param int $quantity
+     */
+    public function changeCartItemQuantity(string $cartItemId, int $quantity): void
+    {
+        $requestedQuantity = CartItemQuantity::create($quantity);
+        $cartItem = $this->cartItems->findOneById(Uuid::fromString($cartItemId));
+        $newTotal = $this->total;
+        $newQuantity = $requestedQuantity;
+
+        if ($requestedQuantity->isHigherThan($cartItem->quantity())) {
+            $newTotal = $newTotal->subtract($cartItem->subtotal());
+
+            $newQuantity = $newQuantity->subtract($cartItem->quantity());
+            $cartItem->increaseQuantity($newQuantity);
+
+            $newTotal = $newTotal->add($cartItem->subtotal());
+        }
+
+        if ($requestedQuantity->isLowerThan($cartItem->quantity())) {
+            $newTotal = $newTotal->subtract($cartItem->subtotal());
+
+            $newQuantity = $cartItem->quantity()->subtract($newQuantity);
+            $cartItem->decreaseQuantity($newQuantity);
+
+            $newTotal = $newTotal->add($cartItem->subtotal());
+        }
+
+        if (!$this->total->equals($newTotal)) {
+            $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
+        }
     }
 
     /**
