@@ -8,7 +8,7 @@ use Broadway\EventSourcing\EventSourcedEntity;
 use Money\Money;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
-use SyliusCart\Domain\Event\CartItemQuantityIncreased;
+use SyliusCart\Domain\Event\CartItemQuantityChanged;
 use SyliusCart\Domain\Event\CartItemSubtotalChanged;
 use SyliusCart\Domain\ValueObject\CartItemQuantity;
 use SyliusCart\Domain\ValueObject\ProductCode;
@@ -78,7 +78,8 @@ final class CartItem extends EventSourcedEntity
         $newQuantity = $this->quantity->add($quantity);
         $newSubtotal = $this->unitPrice->multiply($newQuantity->getNumber());
 
-        $this->apply(CartItemQuantityIncreased::occur($this->cartItemId, $newQuantity, $newSubtotal));
+        $this->apply(CartItemQuantityChanged::occur($this->cartItemId, $newQuantity));
+        $this->apply(CartItemSubtotalChanged::occur($this->cartItemId, $newSubtotal));
     }
 
     /**
@@ -86,8 +87,11 @@ final class CartItem extends EventSourcedEntity
      */
     public function decreaseQuantity(CartItemQuantity $quantity): void
     {
-        $newQuantity = $this->quantity->add($quantity);
+        $newQuantity = $this->quantity->subtract($quantity);
         $newSubtotal = $this->unitPrice->multiply($newQuantity->getNumber());
+
+        $this->apply(CartItemQuantityChanged::occur($this->cartItemId, $newQuantity));
+        $this->apply(CartItemSubtotalChanged::occur($this->cartItemId, $newSubtotal));
     }
 
     /**
@@ -99,13 +103,12 @@ final class CartItem extends EventSourcedEntity
     }
 
     /**
-     * @param CartItemQuantityIncreased $event
+     * @param CartItemQuantityChanged $event
      */
-    protected function applyCartItemQuantityIncreased(CartItemQuantityIncreased $event): void
+    protected function applyCartItemQuantityChanged(CartItemQuantityChanged $event): void
     {
         if ($this->cartItemId->equals($event->getCartItemId())) {
             $this->quantity = $event->getNewCartItemQuantity();
-            $this->subtotal = $event->getNewCartItemSubtotal();
         }
     }
 

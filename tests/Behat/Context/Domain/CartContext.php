@@ -16,7 +16,7 @@ use SyliusCart\Domain\Adapter\Exchange\FixedCurrencyExchangeRateProvider;
 use SyliusCart\Domain\Event\CartCleared;
 use SyliusCart\Domain\Event\CartInitialized;
 use SyliusCart\Domain\Event\CartItemAdded;
-use SyliusCart\Domain\Event\CartItemQuantityIncreased;
+use SyliusCart\Domain\Event\CartItemQuantityChanged;
 use SyliusCart\Domain\Event\CartItemRemoved;
 use SyliusCart\Domain\Event\CartRecalculated;
 use SyliusCart\Domain\Exception\CartAlreadyEmptyException;
@@ -167,6 +167,15 @@ final class CartContext implements Context
     }
 
     /**
+     * @When I change quantity of :productName to :quantity
+     */
+    public function iChangeQuantityOfTo(string $productName, string $quantity): void
+    {
+        $cartItemId = $this->productCatalogue[$this->getCodeFromName($productName)]['cartItemId'];
+        $this->cart->changeCartItemQuantity((string) $cartItemId, (int) $quantity);
+    }
+
+    /**
      * @Then there should be one item in my cart
      */
     public function thereShouldBeOneItemInMyCart(): void
@@ -208,7 +217,7 @@ final class CartContext implements Context
      */
     public function itsQuantityShouldBeTwo(): void
     {
-        $quantityIncreasedEvents = $this->getCartItemQuantityIncreased();
+        $quantityIncreasedEvents = $this->getCartItemQuantityChangedEvents();
         /** @var CartItemQuantityIncreased $quantityIncreasedEvent */
         $quantityIncreasedEvent = end($quantityIncreasedEvents);
 
@@ -448,6 +457,22 @@ final class CartContext implements Context
     }
 
     /**
+     * @Then /^I should not be able to decrease quantity of "([^"]+)" to "([^"]+)"$/
+     */
+    public function iShouldNotBeAbleToDecreaseQuantityOfTo(string $productName, string $quantity): void
+    {
+        $cartItemId = $this->productCatalogue[$this->getCodeFromName($productName)]['cartItemId'];
+
+        try {
+            $this->cart->changeCartItemQuantity((string) $cartItemId, (int) $quantity);
+        } catch (InvalidCartItemQuantityException $exception) {
+            return;
+        }
+
+        throw new \RuntimeException(sprintf('I should no be able to change quantity of "%s" to "%s"', $productName, $quantity));
+    }
+
+    /**
      * @Transform /^"(\-)?(?:€|£|￥|\$)((?:\d+\.)?\d+)"$/
      */
     public function getPriceFromString(string $sign, string $price): int
@@ -572,10 +597,10 @@ final class CartContext implements Context
     /**
      * @return array
      */
-    private function getCartItemQuantityIncreased(): array
+    private function getCartItemQuantityChangedEvents(): array
     {
         return array_filter($this->getEvents(), function ($event) {
-            return $event instanceof CartItemQuantityIncreased;
+            return $event instanceof CartItemQuantityChanged;
         });
     }
 

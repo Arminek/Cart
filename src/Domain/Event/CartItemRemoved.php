@@ -29,7 +29,7 @@ final class CartItemRemoved
     private function __construct(UuidInterface $cartId, CartItem $cartItem)
     {
         $this->cartId = $cartId;
-        $this->cartItem = $cartItem;
+        $this->cartItem = clone $cartItem;
     }
 
     /**

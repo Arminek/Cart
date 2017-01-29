@@ -47,7 +47,19 @@ final class CartItemQuantity
     {
         $number = $this->number + $quantity->getNumber();
 
-        return new self($number);
+        return CartItemQuantity::create($number);
+    }
+
+    /**
+     * @param CartItemQuantity $quantity
+     *
+     * @return CartItemQuantity
+     */
+    public function subtract(CartItemQuantity $quantity): self
+    {
+        $number = $this->number - $quantity->getNumber();
+
+        return CartItemQuantity::create($number);
     }
 
     /**
@@ -58,6 +70,26 @@ final class CartItemQuantity
     public function equals(CartItemQuantity $quantity): bool
     {
         return $quantity->getNumber() === $this->number;
+    }
+
+    /**
+     * @param CartItemQuantity $quantity
+     *
+     * @return bool
+     */
+    public function isHigherThan(CartItemQuantity $quantity): bool
+    {
+        return $quantity->getNumber() < $this->number;
+    }
+
+    /**
+     * @param CartItemQuantity $quantity
+     *
+     * @return bool
+     */
+    public function isLowerThan(CartItemQuantity $quantity): bool
+    {
+        return $quantity->getNumber() > $this->number;
     }
 
     /**

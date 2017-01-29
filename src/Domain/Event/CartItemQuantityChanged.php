@@ -1,17 +1,14 @@
 <?php
 
-declare(strict_types = 1);
-
 namespace SyliusCart\Domain\Event;
 
-use Money\Money;
 use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\ValueObject\CartItemQuantity;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class CartItemQuantityIncreased
+final class CartItemQuantityChanged
 {
     /**
      * @var UuidInterface
@@ -24,38 +21,24 @@ final class CartItemQuantityIncreased
     private $newCartItemQuantity;
 
     /**
-     * @var Money
-     */
-    private $newCartItemSubtotal;
-
-    /**
      * @param UuidInterface $cartItemId
      * @param CartItemQuantity $newCartItemQuantity
-     * @param Money $newCartItemSubtotal
      */
-    private function __construct(
-        UuidInterface $cartItemId,
-        CartItemQuantity $newCartItemQuantity,
-        Money $newCartItemSubtotal
-    ) {
+    private function __construct(UuidInterface $cartItemId, CartItemQuantity $newCartItemQuantity)
+    {
         $this->cartItemId = $cartItemId;
         $this->newCartItemQuantity = $newCartItemQuantity;
-        $this->newCartItemSubtotal = $newCartItemSubtotal;
     }
 
     /**
      * @param UuidInterface $cartItemId
      * @param CartItemQuantity $newCartItemQuantity
-     * @param Money $newCartItemSubtotal
      *
-     * @return CartItemQuantityIncreased
+     * @return CartItemQuantityChanged
      */
-    public static function occur(
-        UuidInterface $cartItemId,
-        CartItemQuantity $newCartItemQuantity,
-        Money $newCartItemSubtotal
-    ): self {
-        return new self($cartItemId, $newCartItemQuantity, $newCartItemSubtotal);
+    public static function occur(UuidInterface $cartItemId, CartItemQuantity $newCartItemQuantity): self
+    {
+        return new self($cartItemId, $newCartItemQuantity);
     }
 
     /**
@@ -72,13 +55,5 @@ final class CartItemQuantityIncreased
     public function getNewCartItemQuantity(): CartItemQuantity
     {
         return $this->newCartItemQuantity;
-    }
-
-    /**
-     * @return Money
-     */
-    public function getNewCartItemSubtotal(): Money
-    {
-        return $this->newCartItemSubtotal;
     }
 }
