@@ -9,7 +9,10 @@ use Money\Currency;
 use Money\Money;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use SyliusCart\Domain\Adapter\AvailableCurrencies\AvailableCurrenciesProviderInterface;
+use SyliusCart\Domain\Adapter\MoneyConverting\Converter;
 use SyliusCart\Domain\Event\CartCleared;
+use SyliusCart\Domain\Event\CartCurrencyChanged;
 use SyliusCart\Domain\Event\CartInitialized;
 use SyliusCart\Domain\Event\CartItemAdded;
 use SyliusCart\Domain\Event\CartItemQuantityIncreased;
@@ -17,6 +20,7 @@ use SyliusCart\Domain\Event\CartItemRemoved;
 use SyliusCart\Domain\Event\CartRecalculated;
 use SyliusCart\Domain\Exception\CartAlreadyEmptyException;
 use SyliusCart\Domain\Exception\CartCurrencyMismatchException;
+use SyliusCart\Domain\Exception\CartCurrencyNotSupportedException;
 use SyliusCart\Domain\Exception\InvalidCartItemUnitPriceException;
 use SyliusCart\Domain\ModelCollection\CartItemCollection;
 use SyliusCart\Domain\ModelCollection\CartItems;
@@ -44,18 +48,63 @@ final class Cart extends EventSourcedAggregateRoot
     private $total;
 
     /**
+     * @var Converter
+     */
+    private $converter;
+
+    /**
+     * @var AvailableCurrenciesProviderInterface
+     */
+    private $availableCurrenciesProvider;
+
+    /**
+     * @param Converter $converter
+     * @param AvailableCurrenciesProviderInterface $availableCurrenciesProvider
+     */
+    private function __construct(Converter $converter, AvailableCurrenciesProviderInterface $availableCurrenciesProvider)
+    {
+        $this->converter = $converter;
+        $this->availableCurrenciesProvider = $availableCurrenciesProvider;
+    }
+
+    /**
      * @param UuidInterface $cartId
      * @param string $currencyCode
+     * @param Converter $converter
+     * @param AvailableCurrenciesProviderInterface $availableCurrenciesProvider
      *
      * @return Cart
      */
-    public static function initialize(UuidInterface $cartId, string $currencyCode): self
-    {
-        $cart = new self();
+    public static function initialize(
+        UuidInterface $cartId,
+        string $currencyCode,
+        Converter $converter,
+        AvailableCurrenciesProviderInterface $availableCurrenciesProvider
+    ): self {
+        $cart = new self($converter, $availableCurrenciesProvider);
 
-        $cart->apply(CartInitialized::occur($cartId, new Money(0, new Currency($currencyCode))));
+        $cartCurrency = new Currency($currencyCode);
+
+        if (!$cartCurrency->isAvailableWithin($cart->availableCurrenciesProvider->provideAvailableCurrencies())) {
+            throw new CartCurrencyNotSupportedException();
+        }
+
+        $cart->apply(CartInitialized::occur($cartId, new Money(0, $cartCurrency)));
 
         return $cart;
+    }
+
+    /**
+     * @param Converter $converter
+     * @param AvailableCurrenciesProviderInterface $availableCurrenciesProvider
+     *
+     * @return Cart
+     */
+    public static function createWithAdapters(
+        Converter $converter,
+        AvailableCurrenciesProviderInterface $availableCurrenciesProvider
+    ): self {
+        return new self($converter, $availableCurrenciesProvider);
     }
 
     /**
@@ -80,7 +129,11 @@ final class Cart extends EventSourcedAggregateRoot
 
         if ($this->cartItems->existsWithProductCode($productCode)) {
             $cartItem = $this->cartItems->findOneByProductCode($productCode);
+            $newTotal = $this->total->subtract($cartItem->subtotal());
             $cartItem->increaseQuantity($quantity);
+            $newTotal = $newTotal->add($cartItem->subtotal());
+
+            $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
 
             return;
         }
@@ -94,8 +147,10 @@ final class Cart extends EventSourcedAggregateRoot
     public function removeCartItem(string $cartItemId): void
     {
         $cartItem = $this->cartItems->findOneById(Uuid::fromString($cartItemId));
+        $newTotal = $this->total->subtract($cartItem->subtotal());
 
         $this->apply(CartItemRemoved::occur($this->cartId, $cartItem));
+        $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
     }
 
     public function clear(): void
@@ -104,7 +159,34 @@ final class Cart extends EventSourcedAggregateRoot
             throw new CartAlreadyEmptyException();
         }
 
+        $newTotal = new Money(0, $this->total->getCurrency());
+
         $this->apply(CartCleared::occur($this->cartId));
+        $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
+    }
+
+    /**
+     * @param string $currencyCode
+     */
+    public function changeCurrency(string $currencyCode): void
+    {
+        $oldCurrency = $this->total->getCurrency();
+        $newCurrency = new Currency($currencyCode);
+
+        if (!$newCurrency->isAvailableWithin($this->availableCurrenciesProvider->provideAvailableCurrencies())) {
+            throw new CartCurrencyNotSupportedException();
+        }
+
+        $newTotal = $this->converter->convert($this->total, $newCurrency);
+
+        /** @var CartItem $cartItem */
+        foreach ($this->cartItems as $cartItem) {
+            $newCartItemSubtotal = $this->converter->convert($cartItem->subtotal(), $newCurrency);
+            $cartItem->changeSubtotalBasedOnNewCurrency($newCartItemSubtotal);
+        }
+
+        $this->apply(CartCurrencyChanged::occur($this->cartId, $newCurrency, $oldCurrency));
+        $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
     }
 
     /**
@@ -139,7 +221,6 @@ final class Cart extends EventSourcedAggregateRoot
     protected function applyCartItemAdded(CartItemAdded $event): void
     {
         $this->cartItems->add($event->getCartItem());
-        $this->recalculateTotal();
     }
 
     /**
@@ -148,7 +229,6 @@ final class Cart extends EventSourcedAggregateRoot
     protected function applyCartItemRemoved(CartItemRemoved $event): void
     {
         $this->cartItems->remove($event->getCartItem());
-        $this->recalculateTotal();
     }
 
     /**
@@ -157,15 +237,6 @@ final class Cart extends EventSourcedAggregateRoot
     protected function applyCartCleared(CartCleared $event): void
     {
         $this->cartItems->clear();
-        $this->recalculateTotal();
-    }
-
-    /**
-     * @param CartItemQuantityIncreased $event
-     */
-    protected function applyCartItemQuantityIncreased(CartItemQuantityIncreased $event): void
-    {
-        $this->recalculateTotalDuringCartItemQuantityIncreasing($event);
     }
 
     /**
@@ -189,39 +260,8 @@ final class Cart extends EventSourcedAggregateRoot
             $price
         );
 
+        $newTotal = $this->total->add($cartItem->subtotal());
         $this->apply(CartItemAdded::occur($this->cartId, $cartItem));
-    }
-
-    private function recalculateTotal(): void
-    {
-        $newTotal = new Money(0, $this->total->getCurrency());
-
-        /** @var CartItem $cartItem */
-        foreach ($this->cartItems as $cartItem) {
-            $newTotal = $newTotal->add($cartItem->subtotal());
-        }
-
-        $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
-    }
-
-    /**
-     * @param CartItemQuantityIncreased $event
-     */
-    private function recalculateTotalDuringCartItemQuantityIncreasing(CartItemQuantityIncreased $event): void
-    {
-        $newTotal = new Money(0, $this->total->getCurrency());
-
-        /** @var CartItem $cartItem */
-        foreach ($this->cartItems as $cartItem) {
-            if ($cartItem->cartItemId()->equals($event->getCartItemId())) {
-                $newTotal = $newTotal->add($event->getNewCartItemSubtotal());
-
-                continue;
-            }
-
-            $newTotal = $newTotal->add($cartItem->subtotal());
-        }
-
         $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
     }
 }

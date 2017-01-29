@@ -44,5 +44,8 @@ Feature: Adding a product to the cart
     Scenario: Adding different product to the not empty cart
         Given I have cart with product "T-shirt banana"
         When I add product "Oathkeeper" to the cart
+        And I add product "Oathkeeper" to the cart
         Then there should be two items in my cart
-        And my cart's total should be "$40.00"
+        And product "Oathkeeper" quantity should be 2
+        And product "T-shirt banana" quantity should be 1
+        And my cart's total should be "$70.00"

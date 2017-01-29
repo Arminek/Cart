@@ -1,4 +1,16 @@
 /bin/
 /vendor/
 
+/app/config/parameters.yml
 composer.lock
+
+/build/
+/phpunit.xml
+/var/
+
+/app/bootstrap.php.cache
+/app/check.php
+/app/SymfonyRequirements.php
+/app/console
+/web/bundles
+/web/config.php
