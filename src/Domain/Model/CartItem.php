@@ -9,6 +9,7 @@ use Money\Money;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\Event\CartItemQuantityIncreased;
+use SyliusCart\Domain\Event\CartItemSubtotalChanged;
 use SyliusCart\Domain\ValueObject\CartItemQuantity;
 use SyliusCart\Domain\ValueObject\ProductCode;
 
@@ -66,11 +67,7 @@ final class CartItem extends EventSourcedEntity
      */
     public static function create(ProductCode $productCode, CartItemQuantity $quantity, Money $unitPrice): self
     {
-        $cartItem = new self(Uuid::uuid4(), $productCode, $quantity, $unitPrice);
-
-
-
-        return $cartItem;
+        return new self(Uuid::uuid4(), $productCode, $quantity, $unitPrice);
     }
 
     /**
@@ -85,12 +82,41 @@ final class CartItem extends EventSourcedEntity
     }
 
     /**
+     * @param CartItemQuantity $quantity
+     */
+    public function decreaseQuantity(CartItemQuantity $quantity): void
+    {
+        $newQuantity = $this->quantity->add($quantity);
+        $newSubtotal = $this->unitPrice->multiply($newQuantity->getNumber());
+    }
+
+    /**
+     * @param Money $newSubtotal
+     */
+    public function changeSubtotalBasedOnNewCurrency(Money $newSubtotal): void
+    {
+        $this->apply(CartItemSubtotalChanged::occur($this->cartItemId, $newSubtotal));
+    }
+
+    /**
      * @param CartItemQuantityIncreased $event
      */
     protected function applyCartItemQuantityIncreased(CartItemQuantityIncreased $event): void
     {
-        $this->quantity = $event->getNewCartItemQuantity();
-        $this->subtotal = $event->getNewCartItemSubtotal();
+        if ($this->cartItemId->equals($event->getCartItemId())) {
+            $this->quantity = $event->getNewCartItemQuantity();
+            $this->subtotal = $event->getNewCartItemSubtotal();
+        }
+    }
+
+    /**
+     * @param CartItemSubtotalChanged $event
+     */
+    protected function applyCartItemSubtotalChanged(CartItemSubtotalChanged $event): void
+    {
+        if ($this->cartItemId->equals($event->getCartItemId())) {
+            $this->subtotal = $event->getNewSubtotal();
+        }
     }
 
     /**

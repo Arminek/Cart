@@ -8,7 +8,21 @@
 
         "broadway/broadway": "dev-master",
         "ramsey/uuid": "^3.5",
-        "moneyphp/money": "^3.0"
+        "moneyphp/money": "^3.0",
+        "php-http/message": "^1.4",
+        "php-http/guzzle6-adapter": "^1.1",
+        "symfony/symfony": "3.2.*",
+        "doctrine/orm": "^2.5",
+        "doctrine/doctrine-bundle": "^1.6",
+        "doctrine/doctrine-cache-bundle": "^1.2",
+        "symfony/swiftmailer-bundle": "^2.3.10",
+        "symfony/monolog-bundle": "^3.0.2",
+        "symfony/polyfill-apcu": "^1.0",
+        "sensio/distribution-bundle": "^5.0",
+        "sensio/framework-extra-bundle": "^3.0.2",
+        "incenteev/composer-parameter-handler": "^2.1",
+        "florianv/swap-bundle": "^2.3",
+        "broadway/broadway-bundle": "dev-master"
     },
     "require-dev": {
         "behat/behat": "^3.3",
@@ -18,14 +32,37 @@
     "autoload": {
         "psr-4": {
             "SyliusCart\\": "src/"
-        }
+        },
+        "classmap": [ "app/AppKernel.php", "app/AppCache.php" ]
     },
     "autoload-dev": {
         "psr-4": {
             "Tests\\SyliusCart\\": "tests/"
         }
     },
+    "extra": {
+        "symfony-app-dir": "app",
+        "symfony-web-dir": "web",
+        "symfony-bin-dir": "bin",
+        "incenteev-parameters": {
+            "file": "app/config/parameters.yml"
+        },
+        "branch-alias": {
+            "dev-master": "3.2-dev"
+        }
+    },
     "config": {
         "bin-dir": "bin"
+    },
+    "scripts": {
+        "symfony-scripts": [
+            "Incenteev\\ParameterHandler\\ScriptHandler::buildParameters"
+        ],
+        "post-install-cmd": [
+            "@symfony-scripts"
+        ],
+        "post-update-cmd": [
+            "@symfony-scripts"
+        ]
     }
 }

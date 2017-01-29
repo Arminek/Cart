@@ -5,11 +5,14 @@ declare(strict_types = 1);
 namespace Tests\SyliusCart\Behat\Context\Domain;
 
 use Behat\Behat\Context\Context;
-use Behat\Behat\Tester\Exception\PendingException;
 use Broadway\Domain\DomainMessage;
 use Money\Currency;
+use Money\Exception\UnresolvableCurrencyPairException;
 use Money\Money;
 use Ramsey\Uuid\Uuid;
+use SyliusCart\Domain\Adapter\AvailableCurrencies\ISOCurrenciesProvider;
+use SyliusCart\Domain\Adapter\MoneyConverting\CartMoneyConverter;
+use SyliusCart\Domain\Adapter\Exchange\FixedCurrencyExchangeRateProvider;
 use SyliusCart\Domain\Event\CartCleared;
 use SyliusCart\Domain\Event\CartInitialized;
 use SyliusCart\Domain\Event\CartItemAdded;
@@ -18,6 +21,7 @@ use SyliusCart\Domain\Event\CartItemRemoved;
 use SyliusCart\Domain\Event\CartRecalculated;
 use SyliusCart\Domain\Exception\CartAlreadyEmptyException;
 use SyliusCart\Domain\Exception\CartCurrencyMismatchException;
+use SyliusCart\Domain\Exception\CartCurrencyNotSupportedException;
 use SyliusCart\Domain\Exception\CartItemNotFoundException;
 use SyliusCart\Domain\Exception\InvalidCartItemQuantityException;
 use SyliusCart\Domain\Exception\InvalidCartItemUnitPriceException;
@@ -33,9 +37,14 @@ use SyliusCart\Domain\ValueObject\ProductCode;
 final class CartContext implements Context
 {
     /**
+     * @var Currency[]
+     */
+    private $storeCurrencies = [];
+
+    /**
      * @var Currency
      */
-    private $storeCurrency;
+    private $storeOperatingCurrency;
 
     /**
      * @var array
@@ -53,11 +62,21 @@ final class CartContext implements Context
     private $cartEvents = [];
 
     /**
-     * @Given the store operates in :currencyCode currency
+     * @var array
      */
-    public function theStoreOperatesInCurrency(string $currencyCode): void
+    private $cartExchangeRateConfiguration = [];
+
+    /**
+     * @Given the store operates in :currencyCode currency
+     * @Given the store operates in :currencyCode and :secondCurrencyCode currency
+     */
+    public function theStoreOperatesInCurrency(string ...$currencyCodes): void
     {
-        $this->storeCurrency = new Currency($currencyCode);
+        foreach ($currencyCodes as $code) {
+            $this->storeCurrencies[$code] = new Currency($code);
+        }
+
+        $this->storeOperatingCurrency = reset($this->storeCurrencies);
     }
 
     /**
@@ -75,8 +94,9 @@ final class CartContext implements Context
      */
     public function iHaveEmptyCart(): void
     {
-        $this->cart = new Cart();
-        $this->cart->apply(CartInitialized::occur(Uuid::uuid4(), new Money(0, $this->storeCurrency)));
+        $cartAdapters = $this->getCartAdaptersBasedOnStoreConfiguration();
+        $this->cart = Cart::createWithAdapters($cartAdapters['converter'], $cartAdapters['currencies_provider']);
+        $this->cart->apply(CartInitialized::occur(Uuid::uuid4(), new Money(0, $this->storeOperatingCurrency)));
     }
 
     /**
@@ -100,6 +120,14 @@ final class CartContext implements Context
     }
 
     /**
+     * @Given the store has convert ratio :ratio between :baseCurrencyCode and :counterCurrencyCode
+     */
+    public function theStoreHasConvertRatioEqualsBetweenAnd(string $ratio, string $baseCurrencyCode, string $counterCurrencyCode): void
+    {
+        $this->cartExchangeRateConfiguration[$baseCurrencyCode] = [$counterCurrencyCode => $ratio];
+    }
+
+    /**
      * @When I add product :productName to the cart
      * @When I add :quantity products :productName to the cart
      */
@@ -108,7 +136,7 @@ final class CartContext implements Context
         $code = $this->getCodeFromName($productName);
         $product = $this->findProductByCode($code);
 
-        $this->cart->addCartItem($code, (int) $quantity, $product['price'], $this->storeCurrency->getCode());
+        $this->cart->addCartItem($code, (int) $quantity, $product['price'], $this->storeOperatingCurrency->getCode());
     }
 
     /**
@@ -126,6 +154,16 @@ final class CartContext implements Context
     {
         $cartItemId = $this->productCatalogue[$this->getCodeFromName($productName)]['cartItemId'];
         $this->cart->removeCartItem((string) $cartItemId);
+    }
+
+    /**
+     * @When I switch to the :currencyCode currency
+     * @When I switch back to the :currencyCode currency
+     */
+    public function iSwitchToTheCurrency(string $currencyCode): void
+    {
+        $this->cart->changeCurrency($currencyCode);
+        $this->storeOperatingCurrency = $this->storeCurrencies[$currencyCode];
     }
 
     /**
@@ -153,7 +191,7 @@ final class CartContext implements Context
         /** @var CartRecalculated $lastCartRecalcualtedEvent */
         $lastCartRecalculatedEvent = end($cartRecalculatedEvents);
 
-        $expectedTotal = new Money($total, $this->storeCurrency);
+        $expectedTotal = new Money($total, $this->storeOperatingCurrency);
 
         if (!$expectedTotal->equals($lastCartRecalculatedEvent->getNewCartTotal())) {
             throw new \RuntimeException(
@@ -227,7 +265,7 @@ final class CartContext implements Context
     public function iShouldNotBeAbleToAddProductWithEmptyCode(): void
     {
         try {
-            $this->cart->addCartItem('', 10, 100, $this->storeCurrency->getCode());
+            $this->cart->addCartItem('', 10, 100, $this->storeOperatingCurrency->getCode());
         } catch (ProductCodeCannotBeEmptyException $exception) {
             return;
         }
@@ -242,13 +280,13 @@ final class CartContext implements Context
     {
         $catch = false;
         try {
-            $this->cart->addCartItem('code', 0, 100, $this->storeCurrency->getCode());
+            $this->cart->addCartItem('code', 0, 100, $this->storeOperatingCurrency->getCode());
         } catch (InvalidCartItemQuantityException $exception) {
             $catch = true;
         }
 
         try {
-            $this->cart->addCartItem('code', -10, 100, $this->storeCurrency->getCode());
+            $this->cart->addCartItem('code', -10, 100, $this->storeOperatingCurrency->getCode());
         } catch (InvalidCartItemQuantityException $exception) {
             $catch = $catch && true;
         }
@@ -273,7 +311,7 @@ final class CartContext implements Context
 
         throw new \RuntimeException(sprintf(
             'I should not be able to add product with different currency. Store currency "%s"',
-            $this->storeCurrency->getCode()
+            $this->storeOperatingCurrency->getCode()
         ));
     }
 
@@ -285,7 +323,7 @@ final class CartContext implements Context
         $productCode = $this->getCodeFromName($productName);
         $productPrice = $this->productCatalogue[$productCode]['price'];
         try {
-            $this->cart->addCartItem($productCode, 10, (int) $productPrice, $this->storeCurrency->getCode());
+            $this->cart->addCartItem($productCode, 10, (int) $productPrice, $this->storeOperatingCurrency->getCode());
         } catch (InvalidCartItemUnitPriceException $exception) {
             return;
         }
@@ -332,6 +370,81 @@ final class CartContext implements Context
         }
 
         throw new \RuntimeException('I should not be able clear already empty cart.');
+    }
+
+    /**
+     * @Then I should not be able to buy products in store with invalid currency
+     */
+    public function iShouldNotBeAbleToBuyProductsInStoreWithInvalidCurrency()
+    {
+        $cartAdapters = $this->getCartAdaptersBasedOnStoreConfiguration();
+        try {
+            Cart::initialize(Uuid::uuid4(), $this->storeOperatingCurrency->getCode(), $cartAdapters['converter'], $cartAdapters['currencies_provider']);
+        } catch (CartCurrencyNotSupportedException $exception) {
+            return;
+        }
+
+        throw new \RuntimeException('I should not be able to initialize cart with invalid currency code.');
+    }
+
+    /**
+     * @Then product :productName quantity should be :quantity
+     */
+    public function productQuantityShouldBe(string $productName, string $quantity): void
+    {
+        $addedEvents = $this->getCartItemAddedEvents();
+        $productCode = ProductCode::fromString($this->getCodeFromName($productName));
+        $quantity = CartItemQuantity::create((int) $quantity);
+
+        $addedEventForProduct = array_filter($addedEvents, function (CartItemAdded $event) use ($productCode) {
+            return $event->getCartItem()->productCode()->equals($productCode);
+        });
+
+        /** @var CartItemAdded $event */
+        $event = end($addedEventForProduct);
+
+        if (!$event->getCartItem()->quantity()->equals($quantity)) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Quantity of this item should be "%s" but is "%s"',
+                    $quantity->getNumber(),
+                    $event->getCartItem()->quantity()->getNumber()
+                )
+            );
+        }
+    }
+
+    /**
+     * @Then I should not be able to switch currency to :currencyCode
+     */
+    public function iShouldNotBeAbleToSwitchCurrencyTo(string $currencyCode): void
+    {
+        try {
+            $this->cart->changeCurrency($currencyCode);
+        } catch (UnresolvableCurrencyPairException | CartCurrencyNotSupportedException $exception) {
+            return;
+        }
+
+        throw new \RuntimeException(sprintf('I should not be able to change currency to "%s"', $currencyCode));
+    }
+
+    /**
+     * @Then I should not be able to add product :productName to the cart in :currencyCode currency
+     */
+    public function iShouldNotBeAbleToAddProductToTheCartInCurrency(string $productName, string $currencyCode): void
+    {
+        $code = $this->getCodeFromName($productName);
+        $product = $this->findProductByCode($code);
+
+        try {
+            $this->cart->addCartItem($code, 1, $product['price'], $currencyCode);
+        } catch (CartCurrencyMismatchException $exception) {
+            return;
+        }
+
+        throw new \RuntimeException(
+            sprintf('I should not be able to add product "%s" in "%s" currency.', $productName, $currencyCode)
+        );
     }
 
     /**
@@ -490,19 +603,35 @@ final class CartContext implements Context
      */
     private function initCartWithProducts(array $products): void
     {
-        $this->cart = new Cart();
+        $cartAdapters = $this->getCartAdaptersBasedOnStoreConfiguration();
+        $this->cart = Cart::createWithAdapters($cartAdapters['converter'], $cartAdapters['currencies_provider']);
         $cartId = Uuid::uuid4();
-        $this->cart->apply(CartInitialized::occur($cartId, new Money(0, $this->storeCurrency)));
+        $this->cart->apply(CartInitialized::occur($cartId, new Money(0, $this->storeOperatingCurrency)));
+        $cartTotal = new Money(0, $this->storeOperatingCurrency);
 
         foreach ($products as $productName => $quantity) {
             $productCode = ProductCode::fromString($this->getCodeFromName($productName));
             $quantity = CartItemQuantity::create($quantity);
-            $price = new Money($this->productCatalogue[(string) $productCode]['price'], $this->storeCurrency);
+            $price = new Money($this->productCatalogue[(string) $productCode]['price'], $this->storeOperatingCurrency);
             $cartItem = CartItem::create($productCode, $quantity, $price);
             $this->productCatalogue[(string) $productCode]['cartItemId'] = (string) $cartItem->cartItemId();
+            $cartTotal = $cartTotal->add($cartItem->subtotal());
 
             $this->cart->apply(CartItemAdded::occur($cartId, $cartItem));
         }
 
+        $this->cart->apply(CartRecalculated::occur($cartId, $cartTotal));
+    }
+
+    /**
+     * @return array
+     */
+    private function getCartAdaptersBasedOnStoreConfiguration(): array
+    {
+        $exchangeRateProvider = new FixedCurrencyExchangeRateProvider($this->cartExchangeRateConfiguration);
+        $availableCurrenciesProvider = new ISOCurrenciesProvider();
+        $converter = new CartMoneyConverter($exchangeRateProvider, $availableCurrenciesProvider);
+
+        return ['currencies_provider' => $availableCurrenciesProvider, 'converter' => $converter];
     }
 }
