@@ -53,7 +53,8 @@ Exchange adapter has fixed currencies pair for handling currency changing:
 It has fixed `8a05b7c2-5624-4f0d-a025-6c4001148526` id for testing purposes.
 
 Architecture overview:
-![alt tag](https://raw.githubusercontent.com/arminek/cart/master/Architecture.png)
+![alt tag](https://github.com/Arminek/Cart/raw/master/Architecture.jpg)
+
 
 MIT License
 -----------
