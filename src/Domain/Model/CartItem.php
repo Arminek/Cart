@@ -48,14 +48,20 @@ final class CartItem extends EventSourcedEntity
      * @param ProductCode $productCode
      * @param CartItemQuantity $quantity
      * @param Money $unitPrice
+     * @param Money $subtotal
      */
-    private function __construct(UuidInterface $cartItemId, ProductCode $productCode, CartItemQuantity $quantity, Money $unitPrice)
-    {
+    public function __construct(
+        UuidInterface $cartItemId,
+        ProductCode $productCode,
+        CartItemQuantity $quantity,
+        Money $unitPrice,
+        Money $subtotal
+    ) {
         $this->cartItemId = $cartItemId;
         $this->productCode = $productCode;
         $this->quantity = $quantity;
         $this->unitPrice = $unitPrice;
-        $this->subtotal = $unitPrice->multiply($quantity->getNumber());
+        $this->subtotal = $subtotal;
     }
 
     /**
@@ -67,7 +73,9 @@ final class CartItem extends EventSourcedEntity
      */
     public static function create(ProductCode $productCode, CartItemQuantity $quantity, Money $unitPrice): self
     {
-        return new self(Uuid::uuid4(), $productCode, $quantity, $unitPrice);
+        $subtotal = $unitPrice->multiply($quantity->getNumber());
+
+        return new self(Uuid::uuid4(), $productCode, $quantity, $unitPrice, $subtotal);
     }
 
     /**

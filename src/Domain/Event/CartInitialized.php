@@ -4,13 +4,16 @@ declare(strict_types = 1);
 
 namespace SyliusCart\Domain\Event;
 
+use Broadway\Serializer\SerializableInterface;
+use Money\Currency;
 use Money\Money;
+use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class CartInitialized
+final class CartInitialized implements SerializableInterface
 {
     /**
      * @var UuidInterface
@@ -57,5 +60,27 @@ final class CartInitialized
     public function getCartTotal(): Money
     {
         return $this->cartTotal;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function deserialize(array $data)
+    {
+        return new self(
+            Uuid::fromString($data['cartId']),
+            new Money($data['cartTotal']['amount'], new Currency($data['cartTotal']['currency']))
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function serialize()
+    {
+        return [
+            'cartId' => $this->cartId->toString(),
+            'cartTotal' => $this->cartTotal->jsonSerialize()
+        ];
     }
 }

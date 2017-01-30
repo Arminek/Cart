@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace SyliusCart\Domain\Model;
 
+use Broadway\Domain\AggregateRoot;
 use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\Adapter\AvailableCurrencies\AvailableCurrenciesProviderInterface;
 use SyliusCart\Domain\Adapter\MoneyConverting\Converter;
@@ -11,7 +12,7 @@ use SyliusCart\Domain\Adapter\MoneyConverting\Converter;
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-interface CartContract
+interface CartContract extends AggregateRoot
 {
     /**
      * @param UuidInterface $cartId

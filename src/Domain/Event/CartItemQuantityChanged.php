@@ -2,13 +2,15 @@
 
 namespace SyliusCart\Domain\Event;
 
+use Broadway\Serializer\SerializableInterface;
+use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\ValueObject\CartItemQuantity;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class CartItemQuantityChanged
+final class CartItemQuantityChanged implements SerializableInterface
 {
     /**
      * @var UuidInterface
@@ -55,5 +57,27 @@ final class CartItemQuantityChanged
     public function getNewCartItemQuantity(): CartItemQuantity
     {
         return $this->newCartItemQuantity;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function deserialize(array $data)
+    {
+        return new self(
+            Uuid::fromString($data['cartItemId']),
+            CartItemQuantity::create($data['newCartItemQuantity'])
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function serialize()
+    {
+        return [
+            'cartItemId' => $this->cartItemId->toString(),
+            'newCartItemQuantity' => $this->newCartItemQuantity->getNumber(),
+        ];
     }
 }
