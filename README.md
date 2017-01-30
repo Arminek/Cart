@@ -8,8 +8,6 @@ Quick Installation
 ```bash
 $ composer install
 $ php app/console do:da:cr
-$ php app/console do:sch:cr
-$ php app/console syl:fix:lo
 $ php app/console broadway:event-store:schema:init
 $ php app/console server:run
 ```
@@ -27,6 +25,7 @@ $ bin/phpspec run
 ```
 
 Let's start playing with this awesome cart.
+It has fixed `8a05b7c2-5624-4f0d-a025-6c4001148526` id for testing purposes.
 ```bash
 $ app/console sylius:cart:initialize #First of all you need to init your cart to get cart id
 $ app/console sylius:cart:add-cart-item
@@ -49,8 +48,6 @@ Exchange adapter has fixed currencies pair for handling currency changing:
     ['EUR' => ['USD' => 2.5]]
     ['USD' => ['EUR' => 0.4]]
 ```
-
-It has fixed `8a05b7c2-5624-4f0d-a025-6c4001148526` id for testing purposes.
 
 Architecture overview:
 ![alt tag](https://github.com/Arminek/Cart/raw/master/Architecture.jpg)
