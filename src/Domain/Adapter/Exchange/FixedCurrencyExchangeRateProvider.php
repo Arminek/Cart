@@ -22,6 +22,13 @@ final class FixedCurrencyExchangeRateProvider implements ExchangeRateProviderInt
      */
     public function __construct(array $fixedExchangeConfiguration)
     {
+        #TODO
+        foreach ($fixedExchangeConfiguration as $firstKey => $config) {
+            foreach ($config as $secondKey => $item) {
+                $fixedExchangeConfiguration[$firstKey][$secondKey] = (float) $item;
+            }
+        }
+
         $this->exchange = new FixedExchange($fixedExchangeConfiguration);
     }
 

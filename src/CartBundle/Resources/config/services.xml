@@ -4,11 +4,52 @@
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
-    <!--<imports>-->
-        <!--<import resource=""/>-->
-    <!--</imports>-->
+
+    <imports>
+        <import resource="services/command.xml"/>
+        <import resource="services/command_handlers.xml"/>
+    </imports>
+
+    <parameters>
+        <parameter key="sylius_cart.fixed_exchange" type="collection">
+            <parameter key="EUR" type="collection">
+                <parameter key="USD">
+                    2.5
+                </parameter>
+            </parameter>
+            <parameter key="USD" type="collection">
+                <parameter key="EUR">
+                    0.4
+                </parameter>
+            </parameter>
+        </parameter>
+    </parameters>
+
     <services>
         <service id="sylius_cart.controller" class="SyliusCart\CartBundle\Controller\CartController">
+            <argument type="service" id="broadway.command_handling.command_bus" />
+        </service>
+
+        <service id="sylius_cart.available_currencies_provider.iso_currencies" class="SyliusCart\Domain\Adapter\AvailableCurrencies\ISOCurrenciesProvider" />
+        <service id="sylius_cart.exchange_rate_provider.fixed" class="SyliusCart\Domain\Adapter\Exchange\FixedCurrencyExchangeRateProvider">
+            <argument>%sylius_cart.fixed_exchange%</argument>
+        </service>
+
+        <service id="sylius_cart.converter.default" class="SyliusCart\Domain\Adapter\MoneyConverting\CartMoneyConverter">
+            <argument type="service" id="sylius_cart.exchange_rate_provider.fixed" />
+            <argument type="service" id="sylius_cart.available_currencies_provider.iso_currencies" />
+        </service>
+
+        <service id="sylius_cart.factory.cart" class="SyliusCart\Domain\Factory\CartAggregateFactory">
+            <argument type="service" id="sylius_cart.converter.default" />
+            <argument type="service" id="sylius_cart.available_currencies_provider.iso_currencies" />
+        </service>
+
+        <service id="sylius_cart.repository.cart" class="Broadway\EventSourcing\EventSourcingRepository">
+            <argument type="service" id="broadway.event_store" />
+            <argument type="service" id="broadway.event_handling.event_bus" />
+            <argument type="string">SyliusCart\Domain\Model\Cart</argument>
+            <argument type="service" id="sylius_cart.factory.cart" />
         </service>
     </services>
 </container>

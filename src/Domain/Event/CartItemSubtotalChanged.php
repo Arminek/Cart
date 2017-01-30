@@ -4,13 +4,16 @@ declare(strict_types = 1);
 
 namespace SyliusCart\Domain\Event;
 
+use Broadway\Serializer\SerializableInterface;
+use Money\Currency;
 use Money\Money;
+use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class CartItemSubtotalChanged
+final class CartItemSubtotalChanged implements SerializableInterface
 {
     /**
      * @var UuidInterface
@@ -57,5 +60,27 @@ final class CartItemSubtotalChanged
     public function getNewSubtotal(): Money
     {
         return $this->newSubtotal;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function deserialize(array $data)
+    {
+        return new self(
+            Uuid::fromString($data['cartItemId']),
+            new Money($data['newSubtotal']['amount'], new Currency($data['newSubtotal']['currency']))
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function serialize()
+    {
+        return [
+            'cartItemId' => $this->cartItemId->toString(),
+            'newSubtotal' => $this->newSubtotal->jsonSerialize()
+        ];
     }
 }

@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <service id="sylius_cart.command_handler.add_cart_item" class="SyliusCart\Domain\CommandHandler\AddCartItemCommandHandler">
+            <argument type="service" id="sylius_cart.repository.cart" />
+            <tag name="broadway.command_handler" />
+        </service>
+        <service id="sylius_cart.command_handler.change_cart_currency" class="SyliusCart\Domain\CommandHandler\ChangeCartCurrencyCommandHandler">
+            <argument type="service" id="sylius_cart.repository.cart" />
+            <tag name="broadway.command_handler" />
+        </service>
+        <service id="sylius_cart.command_handler.change_cart_item_quantity" class="SyliusCart\Domain\CommandHandler\ChangeCartItemQuantityCommandHandler">
+            <argument type="service" id="sylius_cart.repository.cart" />
+            <tag name="broadway.command_handler" />
+        </service>
+        <service id="sylius_cart.command_handler.clear_cart" class="SyliusCart\Domain\CommandHandler\ClearCartCommandHandler">
+            <argument type="service" id="sylius_cart.repository.cart" />
+            <tag name="broadway.command_handler" />
+        </service>
+        <service id="sylius_cart.command_handler.initialize_cart" class="SyliusCart\Domain\CommandHandler\InitializeCartCommandHandler">
+            <argument type="service" id="sylius_cart.repository.cart" />
+            <argument type="service" id="sylius_cart.factory.cart" />
+            <tag name="broadway.command_handler" />
+        </service>
+        <service id="sylius_cart.command_handler.remove_cart_item" class="SyliusCart\Domain\CommandHandler\RemoveCartItemCommandHandler">
+            <argument type="service" id="sylius_cart.repository.cart" />
+            <tag name="broadway.command_handler" />
+        </service>
+    </services>
+</container>
