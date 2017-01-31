@@ -7,9 +7,8 @@ Quick Installation
 
 ```bash
 $ composer install
-$ php app/console do:da:cr
-$ php app/console broadway:event-store:schema:init
-$ php app/console server:run
+$ bin/console do:da:cr
+$ bin/console broadway:event-store:schema:init
 ```
 
 You can run Behat using the following commands:
@@ -27,20 +26,20 @@ $ bin/phpspec run
 Let's start playing with this awesome cart.
 It has fixed `8a05b7c2-5624-4f0d-a025-6c4001148526` id for testing purposes.
 ```bash
-$ app/console sylius:cart:initialize #First of all you need to init your cart to get cart id
-$ app/console sylius:cart:add-cart-item
-$ app/console sylius:cart:change-currency
-$ app/console sylius:cart:item-quantity-change
-$ app/console sylius:cart:remove-cart-item
-$ app/console sylius:cart:clear
-$ app/console sylius:event-store:load #To load all recorded events
+$ bin/console sylius:cart:initialize #First of all you need to init your cart to get cart id
+$ bin/console sylius:cart:add-cart-item
+$ bin/console sylius:cart:change-currency
+$ bin/console sylius:cart:item-quantity-change
+$ bin/console sylius:cart:remove-cart-item
+$ bin/console sylius:cart:clear
+$ bin/console sylius:event-store:load #To load all recorded events
 ```
 
 If you want to reset event stream simple run this commands
 ```bash
-$ app/console broadway:event-store:schema:drop
-$ app/console broadway:event-store:schema:init
-$ app/console sylius:cart:initialize
+$ bin/console broadway:event-store:schema:drop
+$ bin/console broadway:event-store:schema:init
+$ bin/console sylius:cart:initialize
 ```
 
 Exchange adapter has fixed currencies pair for handling currency changing:
