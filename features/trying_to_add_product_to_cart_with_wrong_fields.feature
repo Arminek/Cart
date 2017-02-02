@@ -1,3 +1,4 @@
+@cart
 Feature: Adding a product to the cart with wrong fields
     In order to catch human mistakes
     As a Visitor

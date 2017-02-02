@@ -1,3 +1,4 @@
+@cart
 Feature: Changing cart item quantity in the cart
     In order to change quantity of my item in cart
     As a Visitor

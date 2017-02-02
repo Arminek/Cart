@@ -1,3 +1,4 @@
+@cart
 Feature: Removing cart item from cart
     In order to delete some unnecessary cart items
     As a Visitor

@@ -1,3 +1,4 @@
+@cart
 Feature: Clearing cart which is already empty
     In order to catch human mistakes
     As a Visitor
