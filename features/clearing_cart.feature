@@ -1,3 +1,4 @@
+@cart
 Feature: Clearing cart
     In order to quick start shopping again
     As a Visitor

@@ -1,3 +1,4 @@
+@cart
 Feature: Adding a simple product of given quantity to the cart
     In order to buy multiple items at once
     As a Visitor

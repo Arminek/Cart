@@ -1,3 +1,4 @@
+@cart
 Feature: Changing currency validation
     In order to catch human mistakes
     As a Visitor

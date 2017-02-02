@@ -1,0 +1,16 @@
+# This file is part of the Sylius package.
+# (c) Paweł Jędrzejewski
+
+default:
+    suites:
+        domain_shopping_cart:
+            contexts_services:
+                - sylius_cart.behat.context.setup.cart
+                - sylius_cart.behat.context.setup.store
+
+                - sylius_cart.behat.context.transform.currency
+                - sylius_cart.behat.context.transform.price
+
+                - sylius_cart.behat.context.domain.cart
+            filters:
+                tags: "@cart && @domain"

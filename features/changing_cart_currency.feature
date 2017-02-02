@@ -1,3 +1,4 @@
+@cart
 Feature: All of my cart's values get updated to the currency of my choosing
     In order to know how much I have to pay in my currency
     As a Visitor

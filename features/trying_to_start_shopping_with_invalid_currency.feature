@@ -1,3 +1,4 @@
+@cart
 Feature: Start shopping with invalid currency
     In order to catch human mistakes
     As a Visitor

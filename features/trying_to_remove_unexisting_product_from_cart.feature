@@ -1,3 +1,4 @@
+@cart
 Feature: Removing a product from cart which does not exist
     In order to catch human mistakes
     As a Visitor

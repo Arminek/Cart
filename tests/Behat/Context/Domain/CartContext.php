@@ -30,6 +30,7 @@ use SyliusCart\Domain\Model\Cart;
 use SyliusCart\Domain\Model\CartItem;
 use SyliusCart\Domain\ValueObject\CartItemQuantity;
 use SyliusCart\Domain\ValueObject\ProductCode;
+use Tests\SyliusCart\Behat\Service\SharedStorageInterface;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
@@ -67,65 +68,9 @@ final class CartContext implements Context
     private $cartExchangeRateConfiguration = [];
 
     /**
-     * @Given the store operates in :currencyCode currency
-     * @Given the store operates in :currencyCode and :secondCurrencyCode currency
+     * @var SharedStorageInterface
      */
-    public function theStoreOperatesInCurrency(string ...$currencyCodes): void
-    {
-        foreach ($currencyCodes as $code) {
-            $this->storeCurrencies[$code] = new Currency($code);
-        }
-
-        $this->storeOperatingCurrency = reset($this->storeCurrencies);
-    }
-
-    /**
-     * @Given /^the store has a product "([^"]+)" priced at ("[^"]+")$/
-     */
-    public function theStoreHasAProductPricedAt(string $productName, int $price): void
-    {
-        $productCode = $this->getCodeFromName($productName);
-
-        $this->productCatalogue[$productCode] = ['code' => $productCode, 'name' => $productName, 'price' => $price];
-    }
-
-    /**
-     * @Given I have empty cart
-     */
-    public function iHaveEmptyCart(): void
-    {
-        $cartAdapters = $this->getCartAdaptersBasedOnStoreConfiguration();
-        $this->cart = Cart::createWithAdapters($cartAdapters['converter'], $cartAdapters['currencies_provider']);
-        $this->cart->apply(CartInitialized::occur(Uuid::uuid4(), new Money(0, $this->storeOperatingCurrency)));
-    }
-
-    /**
-     * @Given I have cart with product :productName
-     */
-    public function iHaveCartWithProduct(string $productName): void
-    {
-        $this->initCartWithProducts([$productName => 1]);
-    }
-
-    /**
-     * @Given I have :firstQuantity products :firstProductName and :secondQuantity products :secondProductName in the cart
-     */
-    public function iHaveProductsAndProductsInTheCart(
-        string $firstQuantity,
-        string $firstProductName,
-        string $secondQuantity,
-        string $secondProductName
-    ): void {
-        $this->initCartWithProducts([$firstProductName => (int) $firstQuantity, $secondProductName => (int) $secondQuantity]);
-    }
-
-    /**
-     * @Given the store has convert ratio :ratio between :baseCurrencyCode and :counterCurrencyCode
-     */
-    public function theStoreHasConvertRatioEqualsBetweenAnd(string $ratio, string $baseCurrencyCode, string $counterCurrencyCode): void
-    {
-        $this->cartExchangeRateConfiguration[$baseCurrencyCode] = [$counterCurrencyCode => $ratio];
-    }
+    private $sharedStorage;
 
     /**
      * @When I add product :productName to the cart
@@ -621,31 +566,6 @@ final class CartContext implements Context
                 sprintf('I have "%s" cart items, but I should have "%s".', count($cartItemAddedEvents), $count)
             );
         }
-    }
-
-    /**
-     * @param array $products
-     */
-    private function initCartWithProducts(array $products): void
-    {
-        $cartAdapters = $this->getCartAdaptersBasedOnStoreConfiguration();
-        $this->cart = Cart::createWithAdapters($cartAdapters['converter'], $cartAdapters['currencies_provider']);
-        $cartId = Uuid::uuid4();
-        $this->cart->apply(CartInitialized::occur($cartId, new Money(0, $this->storeOperatingCurrency)));
-        $cartTotal = new Money(0, $this->storeOperatingCurrency);
-
-        foreach ($products as $productName => $quantity) {
-            $productCode = ProductCode::fromString($this->getCodeFromName($productName));
-            $quantity = CartItemQuantity::create($quantity);
-            $price = new Money($this->productCatalogue[(string) $productCode]['price'], $this->storeOperatingCurrency);
-            $cartItem = CartItem::create($productCode, $quantity, $price);
-            $this->productCatalogue[(string) $productCode]['cartItemId'] = (string) $cartItem->cartItemId();
-            $cartTotal = $cartTotal->add($cartItem->subtotal());
-
-            $this->cart->apply(CartItemAdded::occur($cartId, $cartItem));
-        }
-
-        $this->cart->apply(CartRecalculated::occur($cartId, $cartTotal));
     }
 
     /**

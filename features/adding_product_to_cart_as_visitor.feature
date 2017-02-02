@@ -1,3 +1,4 @@
+@cart
 Feature: Adding a product to the cart
     In order to select products for purchase
     As a Visitor
