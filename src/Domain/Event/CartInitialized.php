@@ -6,7 +6,6 @@ namespace SyliusCart\Domain\Event;
 
 use Broadway\Serializer\SerializableInterface;
 use Money\Currency;
-use Money\Money;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 
@@ -21,29 +20,29 @@ final class CartInitialized implements SerializableInterface
     private $cartId;
 
     /**
-     * @var Money
+     * @var Currency
      */
-    private $cartTotal;
+    private $cartCurrency;
 
     /**
      * @param UuidInterface $cartId
-     * @param Money $cartTotal
+     * @param Currency $cartCurrency
      */
-    private function __construct(UuidInterface $cartId, Money $cartTotal)
+    private function __construct(UuidInterface $cartId, Currency $cartCurrency)
     {
         $this->cartId = $cartId;
-        $this->cartTotal = $cartTotal;
+        $this->cartCurrency = $cartCurrency;
     }
 
     /**
      * @param UuidInterface $cartId
-     * @param Money $cartTotal
+     * @param Currency $cartCurrency
      *
      * @return self
      */
-    public static function occur(UuidInterface $cartId, Money $cartTotal): self
+    public static function occur(UuidInterface $cartId, Currency $cartCurrency): self
     {
-        return new self($cartId, $cartTotal);
+        return new self($cartId, $cartCurrency);
     }
 
     /**
@@ -55,11 +54,11 @@ final class CartInitialized implements SerializableInterface
     }
 
     /**
-     * @return Money
+     * @return Currency
      */
-    public function getCartTotal(): Money
+    public function getCartCurrency(): Currency
     {
-        return $this->cartTotal;
+        return $this->cartCurrency;
     }
 
     /**
@@ -69,7 +68,7 @@ final class CartInitialized implements SerializableInterface
     {
         return new self(
             Uuid::fromString($data['cartId']),
-            new Money($data['cartTotal']['amount'], new Currency($data['cartTotal']['currency']))
+            new Currency($data['cartCurrency'])
         );
     }
 
@@ -80,7 +79,7 @@ final class CartInitialized implements SerializableInterface
     {
         return [
             'cartId' => $this->cartId->toString(),
-            'cartTotal' => $this->cartTotal->jsonSerialize()
+            'cartCurrency' => $this->cartCurrency->jsonSerialize()
         ];
     }
 }

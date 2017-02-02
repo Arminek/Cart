@@ -9,10 +9,6 @@
             <argument type="service" id="sylius_cart.repository.cart" />
             <tag name="broadway.command_handler" />
         </service>
-        <service id="sylius_cart.command_handler.change_cart_currency" class="SyliusCart\Domain\CommandHandler\ChangeCartCurrencyCommandHandler">
-            <argument type="service" id="sylius_cart.repository.cart" />
-            <tag name="broadway.command_handler" />
-        </service>
         <service id="sylius_cart.command_handler.change_cart_item_quantity" class="SyliusCart\Domain\CommandHandler\ChangeCartItemQuantityCommandHandler">
             <argument type="service" id="sylius_cart.repository.cart" />
             <tag name="broadway.command_handler" />

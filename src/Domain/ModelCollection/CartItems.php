@@ -7,7 +7,6 @@ namespace SyliusCart\Domain\ModelCollection;
 use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\Exception\CartItemNotFoundException;
 use SyliusCart\Domain\Model\CartItem;
-use SyliusCart\Domain\ValueObject\ProductCode;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
@@ -80,38 +79,9 @@ final class CartItems implements CartItemCollection
     /**
      * {@inheritdoc}
      */
-    public function findOneByProductCode(ProductCode $productCode): CartItem
-    {
-        /** @var CartItem $item */
-        foreach ($this->items as $item) {
-            if ($item->productCode()->equals($productCode)) {
-                return $item;
-            }
-        }
-
-        throw new CartItemNotFoundException(sprintf('Cart item with product code "%s" does not exist.', $productCode));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function exists(CartItem $cartItem): bool
     {
         return $this->items->offsetExists((string) $cartItem->cartItemId());
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function existsWithProductCode(ProductCode $productCode): bool
-    {
-        foreach ($this->items as $item) {
-            if ($item->productCode()->equals($productCode)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
