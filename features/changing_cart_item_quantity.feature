@@ -12,14 +12,14 @@ Feature: Changing cart item quantity in the cart
     Scenario: Decreasing quantity of existing cart item
         Given I have 10 products "T-shirt banana" and 2 products "T-shirt apple" in the cart
         When I change quantity of "T-shirt banana" to 5
-        Then product "T-shirt banana" quantity should be 5
+        And I should have 5 "T-shirt banana" in my cart
         And my cart's total should be "$110.00"
 
     @domain
     Scenario: Increasing quantity of existing cart item
         Given I have 10 products "T-shirt banana" and 2 products "T-shirt apple" in the cart
         When I change quantity of "T-shirt apple" to 10
-        Then product "T-shirt apple" quantity should be 10
+        And I should have 10 "T-shirt apple" in my cart
         And my cart's total should be "$400.00"
 
     @domain

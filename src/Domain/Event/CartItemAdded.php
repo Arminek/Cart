@@ -35,7 +35,7 @@ final class CartItemAdded implements SerializableInterface
     private function __construct(UuidInterface $cartId, CartItem $cartItem)
     {
         $this->cartId = $cartId;
-        $this->cartItem = clone $cartItem;
+        $this->cartItem = $cartItem;
     }
 
     /**
@@ -73,11 +73,9 @@ final class CartItemAdded implements SerializableInterface
         return new self(
             Uuid::fromString($data['cartId']),
             new CartItem(
-                Uuid::fromString($data['cartItem']['cartItemId']),
                 ProductCode::fromString($data['cartItem']['productCode']),
                 CartItemQuantity::create($data['cartItem']['quantity']),
-                new Money($data['cartItem']['unitPrice']['amount'], new Currency($data['cartItem']['unitPrice']['currency'])),
-                new Money($data['cartItem']['subtotal']['amount'], new Currency($data['cartItem']['subtotal']['currency']))
+                new Money($data['cartItem']['unitPrice']['amount'], new Currency($data['cartItem']['unitPrice']['currency']))
             )
         );
     }
@@ -90,11 +88,9 @@ final class CartItemAdded implements SerializableInterface
         return [
             'cartId' => $this->cartId->toString(),
             'cartItem' => [
-                'cartItemId' => $this->cartItem->cartItemId()->toString(),
                 'productCode' => $this->cartItem->productCode()->__toString(),
                 'quantity' => $this->cartItem->quantity()->getNumber(),
                 'unitPrice' => $this->cartItem->unitPrice()->jsonSerialize(),
-                'subtotal' => $this->cartItem->subtotal()->jsonSerialize()
             ]
         ];
     }

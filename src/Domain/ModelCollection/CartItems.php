@@ -4,7 +4,6 @@ declare(strict_types = 1);
 
 namespace SyliusCart\Domain\ModelCollection;
 
-use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\Exception\CartItemNotFoundException;
 use SyliusCart\Domain\Model\CartItem;
 use SyliusCart\Domain\ValueObject\ProductCode;
@@ -50,7 +49,7 @@ final class CartItems implements CartItemCollection
      */
     public function add(CartItem $cartItem): void
     {
-        $this->items->offsetSet((string) $cartItem->cartItemId(), $cartItem);
+        $this->items->offsetSet((string) $cartItem->productCode(), $cartItem);
     }
 
     /**
@@ -62,19 +61,7 @@ final class CartItems implements CartItemCollection
             throw new CartItemNotFoundException(sprintf('Cart item with product code "%s" does not exist.', $cartItem->productCode()));
         }
 
-        $this->items->offsetUnset((string) $cartItem->cartItemId());
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function findOneById(UuidInterface $cartItemId): CartItem
-    {
-        if (!$this->items->offsetExists((string) $cartItemId)) {
-            throw new CartItemNotFoundException(sprintf('Cart item with id "%s" does not exist.', $cartItemId));
-        }
-
-        return $this->items->offsetGet((string) $cartItemId);
+        $this->items->offsetUnset((string) $cartItem->productCode());
     }
 
     /**
@@ -82,14 +69,11 @@ final class CartItems implements CartItemCollection
      */
     public function findOneByProductCode(ProductCode $productCode): CartItem
     {
-        /** @var CartItem $item */
-        foreach ($this->items as $item) {
-            if ($item->productCode()->equals($productCode)) {
-                return $item;
-            }
+        if (!$this->items->offsetExists((string) $productCode)) {
+            throw new CartItemNotFoundException(sprintf('Cart item with id "%s" does not exist.', $productCode));
         }
 
-        throw new CartItemNotFoundException(sprintf('Cart item with product code "%s" does not exist.', $productCode));
+        return $this->items->offsetGet((string) $productCode);
     }
 
     /**
@@ -97,21 +81,7 @@ final class CartItems implements CartItemCollection
      */
     public function exists(CartItem $cartItem): bool
     {
-        return $this->items->offsetExists((string) $cartItem->cartItemId());
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function existsWithProductCode(ProductCode $productCode): bool
-    {
-        foreach ($this->items as $item) {
-            if ($item->productCode()->equals($productCode)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->items->offsetExists((string) $cartItem->productCode());
     }
 
     /**

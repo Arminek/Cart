@@ -7,18 +7,13 @@ namespace SyliusCart\Domain\Model;
 use Broadway\EventSourcing\EventSourcedAggregateRoot;
 use Money\Currency;
 use Money\Money;
-use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\Adapter\AvailableCurrencies\AvailableCurrenciesProviderInterface;
-use SyliusCart\Domain\Adapter\MoneyConverting\Converter;
 use SyliusCart\Domain\Event\CartCleared;
-use SyliusCart\Domain\Event\CartCurrencyChanged;
 use SyliusCart\Domain\Event\CartInitialized;
 use SyliusCart\Domain\Event\CartItemAdded;
-use SyliusCart\Domain\Event\CartItemQuantityIncreased;
+use SyliusCart\Domain\Event\CartItemQuantityChanged;
 use SyliusCart\Domain\Event\CartItemRemoved;
-use SyliusCart\Domain\Event\CartRecalculated;
-use SyliusCart\Domain\Exception\CartAlreadyEmptyException;
 use SyliusCart\Domain\Exception\CartCurrencyMismatchException;
 use SyliusCart\Domain\Exception\CartCurrencyNotSupportedException;
 use SyliusCart\Domain\Exception\InvalidCartItemUnitPriceException;
@@ -43,14 +38,9 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
     private $cartItems;
 
     /**
-     * @var Money
+     * @var Currency
      */
-    private $total;
-
-    /**
-     * @var Converter
-     */
-    private $converter;
+    private $cartCurrency;
 
     /**
      * @var AvailableCurrenciesProviderInterface
@@ -58,19 +48,16 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
     private $availableCurrenciesProvider;
 
     /**
-     * @param Converter $converter
      * @param AvailableCurrenciesProviderInterface $availableCurrenciesProvider
      */
-    private function __construct(Converter $converter, AvailableCurrenciesProviderInterface $availableCurrenciesProvider)
+    private function __construct(AvailableCurrenciesProviderInterface $availableCurrenciesProvider)
     {
-        $this->converter = $converter;
         $this->availableCurrenciesProvider = $availableCurrenciesProvider;
     }
 
     /**
      * @param UuidInterface $cartId
      * @param string $currencyCode
-     * @param Converter $converter
      * @param AvailableCurrenciesProviderInterface $availableCurrenciesProvider
      *
      * @return CartContract
@@ -78,10 +65,9 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
     public static function initialize(
         UuidInterface $cartId,
         string $currencyCode,
-        Converter $converter,
         AvailableCurrenciesProviderInterface $availableCurrenciesProvider
     ): CartContract {
-        $cart = new self($converter, $availableCurrenciesProvider);
+        $cart = new self($availableCurrenciesProvider);
 
         $cartCurrency = new Currency($currencyCode);
 
@@ -89,22 +75,20 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
             throw new CartCurrencyNotSupportedException();
         }
 
-        $cart->apply(CartInitialized::occur($cartId, new Money(0, $cartCurrency)));
+        $cart->apply(CartInitialized::occur($cartId, $cartCurrency));
 
         return $cart;
     }
 
     /**
-     * @param Converter $converter
      * @param AvailableCurrenciesProviderInterface $availableCurrenciesProvider
      *
      * @return CartContract
      */
     public static function createWithAdapters(
-        Converter $converter,
         AvailableCurrenciesProviderInterface $availableCurrenciesProvider
     ): CartContract {
-        return new self($converter, $availableCurrenciesProvider);
+        return new self($availableCurrenciesProvider);
     }
 
     /**
@@ -113,7 +97,7 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
      * @param int $price
      * @param string $productCurrencyCode
      */
-    public function addCartItem(string $productCode, int $quantity, int $price, string $productCurrencyCode): void
+    public function addProductToCart(string $productCode, int $quantity, int $price, string $productCurrencyCode): void
     {
         $price = new Money($price, new Currency($productCurrencyCode));
         $quantity = CartItemQuantity::create($quantity);
@@ -123,104 +107,47 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
             throw new InvalidCartItemUnitPriceException('Cart item unit price cannot be below zero.');
         }
 
-        if (!$this->total->isSameCurrency($price)) {
-            throw new CartCurrencyMismatchException($this->total->getCurrency(), $price->getCurrency());
+        if (!$this->cartCurrency->equals($price->getCurrency())) {
+            throw new CartCurrencyMismatchException($this->cartCurrency, $price->getCurrency());
         }
 
-        if ($this->cartItems->existsWithProductCode($productCode)) {
-            $cartItem = $this->cartItems->findOneByProductCode($productCode);
-            $newTotal = $this->total->subtract($cartItem->subtotal());
-            $cartItem->increaseQuantity($quantity);
-            $newTotal = $newTotal->add($cartItem->subtotal());
+        $cartItem = CartItem::create(
+            $productCode,
+            $quantity,
+            $price
+        );
 
-            $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
-
-            return;
-        }
-
-        $this->addNewCartItem($productCode, $quantity, $price);
+        $this->apply(CartItemAdded::occur($this->cartId, $cartItem));
     }
 
     /**
-     * @param string $cartItemId
+     * @param string $productCode
      */
-    public function removeCartItem(string $cartItemId): void
+    public function removeProductFromCart(string $productCode): void
     {
-        $cartItem = $this->cartItems->findOneById(Uuid::fromString($cartItemId));
-        $newTotal = $this->total->subtract($cartItem->subtotal());
+        $cartItem = $this->cartItems->findOneByProductCode(ProductCode::fromString($productCode));
 
-        $this->apply(CartItemRemoved::occur($this->cartId, $cartItem));
-        $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
+        $this->apply(CartItemRemoved::occur($this->cartId, $cartItem->productCode()));
     }
 
     public function clear(): void
     {
-        if ($this->cartItems->isEmpty()) {
-            throw new CartAlreadyEmptyException();
+        if (!$this->cartItems->isEmpty()) {
+            $this->apply(CartCleared::occur($this->cartId));
         }
-
-        $newTotal = new Money(0, $this->total->getCurrency());
-
-        $this->apply(CartCleared::occur($this->cartId));
-        $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
     }
 
     /**
-     * @param string $currencyCode
-     */
-    public function changeCurrency(string $currencyCode): void
-    {
-        $oldCurrency = $this->total->getCurrency();
-        $newCurrency = new Currency($currencyCode);
-
-        if (!$newCurrency->isAvailableWithin($this->availableCurrenciesProvider->provideAvailableCurrencies())) {
-            throw new CartCurrencyNotSupportedException();
-        }
-
-        $newTotal = $this->converter->convert($this->total, $newCurrency);
-
-        /** @var CartItem $cartItem */
-        foreach ($this->cartItems as $cartItem) {
-            $newCartItemSubtotal = $this->converter->convert($cartItem->subtotal(), $newCurrency);
-            $cartItem->changeSubtotalBasedOnNewCurrency($newCartItemSubtotal);
-        }
-
-        $this->apply(CartCurrencyChanged::occur($this->cartId, $newCurrency, $oldCurrency));
-        $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
-    }
-
-    /**
-     * @param string $cartItemId
+     * @param string $productCode
      * @param int $quantity
      */
-    public function changeCartItemQuantity(string $cartItemId, int $quantity): void
+    public function changeProductQuantity(string $productCode, int $quantity): void
     {
-        $requestedQuantity = CartItemQuantity::create($quantity);
-        $cartItem = $this->cartItems->findOneById(Uuid::fromString($cartItemId));
-        $newTotal = $this->total;
-        $newQuantity = $requestedQuantity;
+        $productCode = ProductCode::fromString($productCode);
+        $cartItem = $this->cartItems->findOneByProductCode($productCode);
+        $newQuantity = CartItemQuantity::create($quantity);
 
-        if ($requestedQuantity->isHigherThan($cartItem->quantity())) {
-            $newTotal = $newTotal->subtract($cartItem->subtotal());
-
-            $newQuantity = $newQuantity->subtract($cartItem->quantity());
-            $cartItem->increaseQuantity($newQuantity);
-
-            $newTotal = $newTotal->add($cartItem->subtotal());
-        }
-
-        if ($requestedQuantity->isLowerThan($cartItem->quantity())) {
-            $newTotal = $newTotal->subtract($cartItem->subtotal());
-
-            $newQuantity = $cartItem->quantity()->subtract($newQuantity);
-            $cartItem->decreaseQuantity($newQuantity);
-
-            $newTotal = $newTotal->add($cartItem->subtotal());
-        }
-
-        if (!$this->total->equals($newTotal)) {
-            $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
-        }
+        $this->apply(CartItemQuantityChanged::occur($this->cartId, $productCode, $cartItem->quantity(), $newQuantity));
     }
 
     /**
@@ -232,20 +159,12 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
     }
 
     /**
-     * {@inheritdoc}
-     */
-    protected function getChildEntities(): CartItemCollection
-    {
-        return $this->cartItems;
-    }
-
-    /**
      * @param CartInitialized $event
      */
     protected function applyCartInitialized(CartInitialized $event): void
     {
         $this->cartId = $event->getCartId();
-        $this->total = $event->getCartTotal();
+        $this->cartCurrency = $event->getCartCurrency();
         $this->cartItems = CartItems::createEmpty();
     }
 
@@ -262,7 +181,8 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
      */
     protected function applyCartItemRemoved(CartItemRemoved $event): void
     {
-        $this->cartItems->remove($event->getCartItem());
+        $cartItem = $this->cartItems->findOneByProductCode($event->getProductCode());
+        $this->cartItems->remove($cartItem);
     }
 
     /**
@@ -271,31 +191,5 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
     protected function applyCartCleared(CartCleared $event): void
     {
         $this->cartItems->clear();
-    }
-
-    /**
-     * @param CartRecalculated $event
-     */
-    protected function applyCartRecalculated(CartRecalculated $event): void
-    {
-        $this->total = $event->getNewCartTotal();
-    }
-
-    /**
-     * @param ProductCode $productCode
-     * @param CartItemQuantity $quantity
-     * @param Money $price
-     */
-    private function addNewCartItem(ProductCode $productCode, CartItemQuantity $quantity, Money $price): void
-    {
-        $cartItem = CartItem::create(
-            $productCode,
-            $quantity,
-            $price
-        );
-
-        $newTotal = $this->total->add($cartItem->subtotal());
-        $this->apply(CartItemAdded::occur($this->cartId, $cartItem));
-        $this->apply(CartRecalculated::occur($this->cartId, $newTotal));
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types = 1);
 
 namespace SyliusCart\Domain\ModelCollection;
 
-use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\Exception\CartItemNotFoundException;
 use SyliusCart\Domain\Model\CartItem;
 use SyliusCart\Domain\ValueObject\ProductCode;
@@ -27,15 +26,6 @@ interface CartItemCollection extends \Countable, \IteratorAggregate
     public function remove(CartItem $cartItem): void;
 
     /**
-     * @param UuidInterface $cartItemId
-     *
-     * @return CartItem
-     *
-     * @throws CartItemNotFoundException
-     */
-    public function findOneById(UuidInterface $cartItemId): CartItem;
-
-    /**
      * @param ProductCode $productCode
      *
      * @return CartItem
@@ -50,13 +40,6 @@ interface CartItemCollection extends \Countable, \IteratorAggregate
      * @return bool
      */
     public function exists(CartItem $cartItem): bool;
-
-    /**
-     * @param ProductCode $productCode
-     *
-     * @return bool
-     */
-    public function existsWithProductCode(ProductCode $productCode): bool;
 
     /**
      * @return array
