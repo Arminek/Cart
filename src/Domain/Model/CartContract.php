@@ -42,18 +42,18 @@ interface CartContract extends AggregateRoot
      *
      * @param string $productCurrencyCode
      */
-    public function addCartItem(string $productCode, int $quantity, int $price, string $productCurrencyCode): void;
+    public function addProductToCart(string $productCode, int $quantity, int $price, string $productCurrencyCode): void;
 
     /**
-     * @param string $cartItemId
+     * @param string $productCode
      */
-    public function removeCartItem(string $cartItemId): void;
+    public function removeProductFromCart(string $productCode): void;
 
     public function clear(): void;
 
     /**
-     * @param string $cartItemId
+     * @param string $productCode
      * @param int $quantity
      */
-    public function changeCartItemQuantity(string $cartItemId, int $quantity): void;
+    public function changeProductQuantity(string $productCode, int $quantity): void;
 }

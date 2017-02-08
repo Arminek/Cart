@@ -5,12 +5,8 @@ declare(strict_types = 1);
 namespace SyliusCart\Domain\Event;
 
 use Broadway\Serializer\SerializableInterface;
-use Money\Currency;
-use Money\Money;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
-use SyliusCart\Domain\Model\CartItem;
-use SyliusCart\Domain\ValueObject\CartItemQuantity;
 use SyliusCart\Domain\ValueObject\ProductCode;
 
 /**
@@ -24,29 +20,29 @@ final class CartItemRemoved implements SerializableInterface
     private $cartId;
 
     /**
-     * @var UuidInterface
+     * @var ProductCode
      */
-    private $cartItemId;
+    private $productCode;
 
     /**
      * @param UuidInterface $cartId
-     * @param UuidInterface $cartItemId
+     * @param ProductCode $productCode
      */
-    private function __construct(UuidInterface $cartId, UuidInterface $cartItemId)
+    private function __construct(UuidInterface $cartId, ProductCode $productCode)
     {
         $this->cartId = $cartId;
-        $this->cartItemId = $cartItemId;
+        $this->productCode = $productCode;
     }
 
     /**
      * @param UuidInterface $cartId
-     * @param UuidInterface $cartItemId
+     * @param ProductCode $productCode
      *
-     * @return CartItemRemoved
+     * @return self
      */
-    public static function occur(UuidInterface $cartId, UuidInterface $cartItemId): self
+    public static function occur(UuidInterface $cartId, ProductCode $productCode): self
     {
-        return new self($cartId, $cartItemId);
+        return new self($cartId, $productCode);
     }
 
     /**
@@ -58,32 +54,32 @@ final class CartItemRemoved implements SerializableInterface
     }
 
     /**
-     * @return UuidInterface
+     * @return ProductCode
      */
-    public function getCartItemId(): UuidInterface
+    public function getProductCode(): ProductCode
     {
-        return $this->cartItemId;
+        return $this->productCode;
     }
 
     /**
      * {@inheritdoc}
      */
-    public static function deserialize(array $data)
+    public static function deserialize(array $data): self
     {
         return new self(
             Uuid::fromString($data['cartId']),
-            Uuid::fromString($data['cartItemId'])
+            ProductCode::fromString($data['productCode'])
         );
     }
 
     /**
      * {@inheritdoc}
      */
-    public function serialize()
+    public function serialize(): array
     {
         return [
-            'cartId' => $this->cartId->toString(),
-            'cartItemId' => $this->cartItemId->toString()
+            'cartId' => (string) $this->cartId,
+            'productCode' => (string) $this->productCode
         ];
     }
 }

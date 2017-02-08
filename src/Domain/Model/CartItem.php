@@ -14,13 +14,8 @@ use SyliusCart\Domain\ValueObject\ProductCode;
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class CartItem extends EventSourcedEntity
+final class CartItem
 {
-    /**
-     * @var UuidInterface
-     */
-    private $cartItemId;
-
     /**
      * @var ProductCode
      */
@@ -37,18 +32,15 @@ final class CartItem extends EventSourcedEntity
     private $unitPrice;
 
     /**
-     * @param UuidInterface $cartItemId
      * @param ProductCode $productCode
      * @param CartItemQuantity $quantity
      * @param Money $unitPrice
      */
     public function __construct(
-        UuidInterface $cartItemId,
         ProductCode $productCode,
         CartItemQuantity $quantity,
         Money $unitPrice
     ) {
-        $this->cartItemId = $cartItemId;
         $this->productCode = $productCode;
         $this->quantity = $quantity;
         $this->unitPrice = $unitPrice;
@@ -63,15 +55,7 @@ final class CartItem extends EventSourcedEntity
      */
     public static function create(ProductCode $productCode, CartItemQuantity $quantity, Money $unitPrice): self
     {
-        return new self(Uuid::uuid4(), $productCode, $quantity, $unitPrice);
-    }
-
-    /**
-     * @return UuidInterface
-     */
-    public function cartItemId(): UuidInterface
-    {
-        return $this->cartItemId;
+        return new self($productCode, $quantity, $unitPrice);
     }
 
     /**

@@ -7,7 +7,6 @@ namespace SyliusCart\Domain\Model;
 use Broadway\EventSourcing\EventSourcedAggregateRoot;
 use Money\Currency;
 use Money\Money;
-use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\Adapter\AvailableCurrencies\AvailableCurrenciesProviderInterface;
 use SyliusCart\Domain\Event\CartCleared;
@@ -98,7 +97,7 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
      * @param int $price
      * @param string $productCurrencyCode
      */
-    public function addCartItem(string $productCode, int $quantity, int $price, string $productCurrencyCode): void
+    public function addProductToCart(string $productCode, int $quantity, int $price, string $productCurrencyCode): void
     {
         $price = new Money($price, new Currency($productCurrencyCode));
         $quantity = CartItemQuantity::create($quantity);
@@ -122,13 +121,13 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
     }
 
     /**
-     * @param string $cartItemId
+     * @param string $productCode
      */
-    public function removeCartItem(string $cartItemId): void
+    public function removeProductFromCart(string $productCode): void
     {
-        $cartItem = $this->cartItems->findOneById(Uuid::fromString($cartItemId));
+        $cartItem = $this->cartItems->findOneByProductCode(ProductCode::fromString($productCode));
 
-        $this->apply(CartItemRemoved::occur($this->cartId, $cartItem->cartItemId()));
+        $this->apply(CartItemRemoved::occur($this->cartId, $cartItem->productCode()));
     }
 
     public function clear(): void
@@ -139,14 +138,16 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
     }
 
     /**
-     * @param string $cartItemId
+     * @param string $productCode
      * @param int $quantity
      */
-    public function changeCartItemQuantity(string $cartItemId, int $quantity): void
+    public function changeProductQuantity(string $productCode, int $quantity): void
     {
+        $productCode = ProductCode::fromString($productCode);
+        $cartItem = $this->cartItems->findOneByProductCode($productCode);
         $newQuantity = CartItemQuantity::create($quantity);
 
-        $this->apply(CartItemQuantityChanged::occur(Uuid::fromString($cartItemId), $newQuantity));
+        $this->apply(CartItemQuantityChanged::occur($this->cartId, $productCode, $cartItem->quantity(), $newQuantity));
     }
 
     /**
@@ -155,14 +156,6 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
     public function getAggregateRootId(): UuidInterface
     {
         return $this->cartId;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function getChildEntities(): CartItemCollection
-    {
-        return $this->cartItems;
     }
 
     /**
@@ -188,7 +181,7 @@ final class Cart extends EventSourcedAggregateRoot implements CartContract
      */
     protected function applyCartItemRemoved(CartItemRemoved $event): void
     {
-        $cartItem = $this->cartItems->findOneById($event->getCartItemId());
+        $cartItem = $this->cartItems->findOneByProductCode($event->getProductCode());
         $this->cartItems->remove($cartItem);
     }
 

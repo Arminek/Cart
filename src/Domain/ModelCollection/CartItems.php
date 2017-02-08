@@ -4,9 +4,9 @@ declare(strict_types = 1);
 
 namespace SyliusCart\Domain\ModelCollection;
 
-use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\Exception\CartItemNotFoundException;
 use SyliusCart\Domain\Model\CartItem;
+use SyliusCart\Domain\ValueObject\ProductCode;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
@@ -49,7 +49,7 @@ final class CartItems implements CartItemCollection
      */
     public function add(CartItem $cartItem): void
     {
-        $this->items->offsetSet((string) $cartItem->cartItemId(), $cartItem);
+        $this->items->offsetSet((string) $cartItem->productCode(), $cartItem);
     }
 
     /**
@@ -61,19 +61,19 @@ final class CartItems implements CartItemCollection
             throw new CartItemNotFoundException(sprintf('Cart item with product code "%s" does not exist.', $cartItem->productCode()));
         }
 
-        $this->items->offsetUnset((string) $cartItem->cartItemId());
+        $this->items->offsetUnset((string) $cartItem->productCode());
     }
 
     /**
      * {@inheritdoc}
      */
-    public function findOneById(UuidInterface $cartItemId): CartItem
+    public function findOneByProductCode(ProductCode $productCode): CartItem
     {
-        if (!$this->items->offsetExists((string) $cartItemId)) {
-            throw new CartItemNotFoundException(sprintf('Cart item with id "%s" does not exist.', $cartItemId));
+        if (!$this->items->offsetExists((string) $productCode)) {
+            throw new CartItemNotFoundException(sprintf('Cart item with id "%s" does not exist.', $productCode));
         }
 
-        return $this->items->offsetGet((string) $cartItemId);
+        return $this->items->offsetGet((string) $productCode);
     }
 
     /**
@@ -81,7 +81,7 @@ final class CartItems implements CartItemCollection
      */
     public function exists(CartItem $cartItem): bool
     {
-        return $this->items->offsetExists((string) $cartItem->cartItemId());
+        return $this->items->offsetExists((string) $cartItem->productCode());
     }
 
     /**
