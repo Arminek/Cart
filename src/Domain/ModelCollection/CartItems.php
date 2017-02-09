@@ -70,7 +70,7 @@ final class CartItems implements CartItemCollection
     public function findOneByProductCode(ProductCode $productCode): CartItem
     {
         if (!$this->items->offsetExists((string) $productCode)) {
-            throw new CartItemNotFoundException(sprintf('Cart item with id "%s" does not exist.', $productCode));
+            throw new CartItemNotFoundException(sprintf('Cart item with product code "%s" does not exist.', $productCode));
         }
 
         return $this->items->offsetGet((string) $productCode);

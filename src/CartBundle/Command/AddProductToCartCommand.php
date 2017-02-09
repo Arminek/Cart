@@ -4,7 +4,7 @@ namespace SyliusCart\CartBundle\Command;
 
 use Broadway\CommandHandling\CommandBusInterface;
 use Broadway\UuidGenerator\UuidGeneratorInterface;
-use SyliusCart\Domain\Command\AddCartItem;
+use SyliusCart\Domain\Command\AddProductToCart;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,7 +14,7 @@ use Symfony\Component\Console\Question\Question;
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class AddCartItemCommand extends Command
+final class AddProductToCartCommand extends Command
 {
     /**
      * @var CommandBusInterface
@@ -44,8 +44,8 @@ final class AddCartItemCommand extends Command
     protected function configure()
     {
         $this
-            ->setName('sylius:cart:add-cart-item')
-            ->setDescription('Add cart item')
+            ->setName('sylius:cart:add-product')
+            ->setDescription('Add product to cart')
         ;
     }
 
@@ -56,18 +56,14 @@ final class AddCartItemCommand extends Command
     {
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
-        $productCodeQuestion = new Question('Product code: ', 'Mug');
-        $quantityQuestion = new Question('Quantity: ', 1);
-        $priceQuestion = new Question('How much does it costs in cents: ', 1000);
-        $currencyQuestion = new Question('In which currency: ', 'EUR');
 
-        $productCode = $helper->ask($input, $output, $productCodeQuestion);
-        $quantity = $helper->ask($input, $output, $quantityQuestion);
-        $price = $helper->ask($input, $output, $priceQuestion);
-        $currency = $helper->ask($input, $output, $currencyQuestion);
+        $productCode = $helper->ask($input, $output, new Question('Product code: ', 'Mug'));
+        $quantity = $helper->ask($input, $output, new Question('Quantity: ', 1));
+        $price = $helper->ask($input, $output, new Question('How much does it costs in cents: ', 1000));
+        $currency = $helper->ask($input, $output, new Question('In which currency: ', 'EUR'));
 
         $cartId = $this->uuidGenerator->generate();
-        $addCartItem = AddCartItem::create($cartId, $productCode, $quantity, $price, $currency);
+        $addCartItem = AddProductToCart::create($cartId, $productCode, $quantity, $price, $currency);
 
         $this->commandBus->dispatch($addCartItem);
 

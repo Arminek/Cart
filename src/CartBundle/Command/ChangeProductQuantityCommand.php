@@ -4,7 +4,7 @@ namespace SyliusCart\CartBundle\Command;
 
 use Broadway\CommandHandling\CommandBusInterface;
 use Broadway\UuidGenerator\UuidGeneratorInterface;
-use SyliusCart\Domain\Command\ChangeCartItemQuantity;
+use SyliusCart\Domain\Command\ChangeProductQuantity;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,7 +14,7 @@ use Symfony\Component\Console\Question\Question;
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class ChangeCartItemQuantityCommand extends Command
+final class ChangeProductQuantityCommand extends Command
 {
     /**
      * @var CommandBusInterface
@@ -44,8 +44,8 @@ final class ChangeCartItemQuantityCommand extends Command
     protected function configure()
     {
         $this
-            ->setName('sylius:cart:item-quantity-change')
-            ->setDescription('Change cart item quantity')
+            ->setName('sylius:cart:change-product-quantity')
+            ->setDescription('Change product quantity')
         ;
     }
 
@@ -56,14 +56,12 @@ final class ChangeCartItemQuantityCommand extends Command
     {
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
-        $cartItemIdQuestion = new Question('Cart item id: ');
-        $quantityQuestion = new Question('New quantity: ', 1);
 
-        $cartItemId = $helper->ask($input, $output, $cartItemIdQuestion);
-        $quantity = $helper->ask($input, $output, $quantityQuestion);
+        $productCode = $helper->ask($input, $output, new Question('Product code: '));
+        $quantity = $helper->ask($input, $output, new Question('New quantity: ', 1));
 
         $cartId = $this->uuidGenerator->generate();
-        $changeCartItemQuantity = ChangeCartItemQuantity::create($cartId, $cartItemId, $quantity);
+        $changeCartItemQuantity = ChangeProductQuantity::create($cartId, $productCode, $quantity);
 
         $this->commandBus->dispatch($changeCartItemQuantity);
 

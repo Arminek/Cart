@@ -6,13 +6,13 @@ namespace SyliusCart\Domain\CommandHandler;
 
 use Broadway\CommandHandling\CommandHandler;
 use Broadway\Repository\RepositoryInterface;
-use SyliusCart\Domain\Command\ChangeCartItemQuantity;
+use SyliusCart\Domain\Command\ChangeProductQuantity;
 use SyliusCart\Domain\Model\CartContract;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class ChangeCartItemQuantityCommandHandler extends CommandHandler
+final class ChangeProductQuantityCommandHandler extends CommandHandler
 {
     /**
      * @var RepositoryInterface
@@ -28,14 +28,14 @@ final class ChangeCartItemQuantityCommandHandler extends CommandHandler
     }
 
     /**
-     * @param ChangeCartItemQuantity $command
+     * @param ChangeProductQuantity $command
      */
-    public function handleChangeCartItemQuantity(ChangeCartItemQuantity $command): void
+    public function handleChangeProductQuantity(ChangeProductQuantity $command): void
     {
         /** @var CartContract $cart */
         $cart = $this->cartRepository->load($command->getCartId());
 
-        $cart->changeCartItemQuantity($command->getCartItemId(), $command->getQuantity());
+        $cart->changeProductQuantity($command->getProductCode(), $command->getNewQuantity());
 
         $this->cartRepository->save($cart);
     }

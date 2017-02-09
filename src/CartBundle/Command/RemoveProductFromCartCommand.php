@@ -4,7 +4,7 @@ namespace SyliusCart\CartBundle\Command;
 
 use Broadway\CommandHandling\CommandBusInterface;
 use Broadway\UuidGenerator\UuidGeneratorInterface;
-use SyliusCart\Domain\Command\RemoveCartItem;
+use SyliusCart\Domain\Command\RemoveProductFromCart;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,7 +14,7 @@ use Symfony\Component\Console\Question\Question;
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class RemoveCartItemCommand extends Command
+final class RemoveProductFromCartCommand extends Command
 {
     /**
      * @var CommandBusInterface
@@ -44,8 +44,8 @@ final class RemoveCartItemCommand extends Command
     protected function configure()
     {
         $this
-            ->setName('sylius:cart:remove-cart-item')
-            ->setDescription('Remove cart item')
+            ->setName('sylius:cart:remove-product-from-cart')
+            ->setDescription('Remove product from cart')
         ;
     }
 
@@ -56,12 +56,11 @@ final class RemoveCartItemCommand extends Command
     {
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
-        $cartItemIdQuestion = new Question('Cart item id: ');
 
-        $cartItemId = $helper->ask($input, $output, $cartItemIdQuestion);
+        $productCode = $helper->ask($input, $output, new Question('Product code: '));
 
         $cartId = $this->uuidGenerator->generate();
-        $cartItemRemove = RemoveCartItem::create($cartId, $cartItemId);
+        $cartItemRemove = RemoveProductFromCart::create($cartId, $productCode);
 
         $this->commandBus->dispatch($cartItemRemove);
 
