@@ -9,6 +9,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\Question;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
@@ -53,7 +54,17 @@ final class ShowRecordedEvents extends Command
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $domainEventStream = $this->eventStore->load($this->uuidGenerator->generate());
+        $helper = $this->getHelper('question');
+        $cartId = $helper->ask(
+            $input,
+            $output,
+            new Question(
+                sprintf('Cart id (%s): ', $this->uuidGenerator->generate()),
+                $this->uuidGenerator->generate()
+            )
+        );
+
+        $domainEventStream = $this->eventStore->load($cartId);
 
         /** @var DomainMessage $event */
         foreach ($domainEventStream as $event) {

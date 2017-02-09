@@ -57,12 +57,20 @@ final class AddProductToCartCommand extends Command
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
 
+        $cartId = $helper->ask(
+            $input,
+            $output,
+            new Question(
+                sprintf('Cart id (%s): ', $this->uuidGenerator->generate()),
+                $this->uuidGenerator->generate()
+            )
+        );
+
         $productCode = $helper->ask($input, $output, new Question('Product code: ', 'Mug'));
         $quantity = $helper->ask($input, $output, new Question('Quantity: ', 1));
         $price = $helper->ask($input, $output, new Question('How much does it costs in cents: ', 1000));
         $currency = $helper->ask($input, $output, new Question('In which currency: ', 'EUR'));
 
-        $cartId = $this->uuidGenerator->generate();
         $addCartItem = AddProductToCart::create($cartId, $productCode, $quantity, $price, $currency);
 
         $this->commandBus->dispatch($addCartItem);

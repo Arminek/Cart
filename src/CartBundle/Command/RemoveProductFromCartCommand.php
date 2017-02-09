@@ -57,9 +57,17 @@ final class RemoveProductFromCartCommand extends Command
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
 
+        $cartId = $helper->ask(
+            $input,
+            $output,
+            new Question(
+                sprintf('Cart id (%s): ', $this->uuidGenerator->generate()),
+                $this->uuidGenerator->generate()
+            )
+        );
+
         $productCode = $helper->ask($input, $output, new Question('Product code: '));
 
-        $cartId = $this->uuidGenerator->generate();
         $cartItemRemove = RemoveProductFromCart::create($cartId, $productCode);
 
         $this->commandBus->dispatch($cartItemRemove);

@@ -8,6 +8,7 @@ use SyliusCart\Domain\Command\ClearCart;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\Question;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
@@ -52,7 +53,16 @@ final class ClearCartCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $cartId = $this->uuidGenerator->generate();
+        $helper = $this->getHelper('question');
+        $cartId = $helper->ask(
+            $input,
+            $output,
+            new Question(
+                sprintf('Cart id (%s): ', $this->uuidGenerator->generate()),
+                $this->uuidGenerator->generate()
+            )
+        );
+
         $clearCart = ClearCart::create($cartId);
 
         $this->commandBus->dispatch($clearCart);
