@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/Arminek/Cart.svg?token=8ZLRHEY2aPJvQgqmQCxh&branch=master)](https://travis-ci.com/Arminek/Cart)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Arminek/Cart/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/Arminek/Cart/?branch=master)
 # SyliusCart
 
 It is an event sourced cart.

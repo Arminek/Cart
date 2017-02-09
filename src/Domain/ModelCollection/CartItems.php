@@ -37,9 +37,9 @@ final class CartItems implements CartItemCollection
     }
 
     /**
-     * @return CartItems
+     * @return CartItemCollection
      */
-    public static function createEmpty(): self
+    public static function createEmpty(): CartItemCollection
     {
         return new self();
     }
