@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/Arminek/Cart.svg?token=8ZLRHEY2aPJvQgqmQCxh&branch=master)](https://travis-ci.com/Arminek/Cart)
 # SyliusCart
 
-It is a event sourced cart.
+It is an event sourced cart.
 
 Quick Installation
 ------------------
@@ -10,6 +10,7 @@ Quick Installation
 $ composer install
 $ bin/console do:da:cr
 $ bin/console broadway:event-store:schema:init
+$ bin/console server:start
 ```
 
 You can run Behat using the following commands:
@@ -40,6 +41,46 @@ If you want to reset event stream simple run this commands
 $ bin/console broadway:event-store:schema:drop
 $ bin/console broadway:event-store:schema:init
 $ bin/console sylius:cart:initialize
+```
+
+#Routes
+```yaml
+
+sylius_cart_initialize:
+    path: /api/cart/init
+    methods: [POST]
+    defaults:
+        _controller: sylius_cart.controller:initializeAction
+        _format: json
+
+sylius_cart_add_product:
+    path: /api/cart/add-product
+    methods: [POST]
+    defaults:
+        _controller: sylius_cart.controller:addProductAction
+        _format: json
+
+sylius_cart_change_product_quantity:
+    path: /api/cart/change-product-quantity
+    methods: [POST]
+    defaults:
+        _controller: sylius_cart.controller:changeProductQuantityAction
+        _format: json
+
+sylius_cart_remove_product_from_cart:
+    path: /api/cart/remove-product
+    methods: [POST]
+    defaults:
+        _controller: sylius_cart.controller:removeProductAction
+        _format: json
+
+sylius_cart_clear:
+    path: /api/cart/clear
+    methods: [POST]
+    defaults:
+        _controller: sylius_cart.controller:clearAction
+        _format: json
+
 ```
 
 Architecture overview:

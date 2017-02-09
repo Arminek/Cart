@@ -10,6 +10,8 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ChoiceQuestion;
+use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 
 /**
@@ -57,11 +59,25 @@ final class InitializeCartCommand extends Command
     {
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
-        $question = new Question('Cart currency code: ', 'USD');
 
-        $currencyCode = $helper->ask($input, $output, $question);
+        $question = new ChoiceQuestion(
+            'Do you want init new cart or mocked one?',
+            ['new', 'mocked'],
+            0
+        );
 
-        $cartId = $this->uuidGenerator->generate();
+        $answer = $helper->ask($input, $output, $question);
+
+        if ('mocked' === $answer) {
+            $cartId = $this->uuidGenerator->generate();
+        }
+
+        if ('new' === $answer) {
+            $cartId = Uuid::uuid4()->toString();
+        }
+
+        $currencyCode = $helper->ask($input, $output, new Question('Cart currency code: ', 'USD'));
+
         $initializeCart = InitializeCart::create(Uuid::fromString($cartId), $currencyCode);
 
         $this->commandBus->dispatch($initializeCart);

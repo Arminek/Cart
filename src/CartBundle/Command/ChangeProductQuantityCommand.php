@@ -57,10 +57,18 @@ final class ChangeProductQuantityCommand extends Command
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
 
+        $cartId = $helper->ask(
+            $input,
+            $output,
+            new Question(
+                sprintf('Cart id (%s): ', $this->uuidGenerator->generate()),
+                $this->uuidGenerator->generate()
+            )
+        );
+
         $productCode = $helper->ask($input, $output, new Question('Product code: '));
         $quantity = $helper->ask($input, $output, new Question('New quantity: ', 1));
 
-        $cartId = $this->uuidGenerator->generate();
         $changeCartItemQuantity = ChangeProductQuantity::create($cartId, $productCode, $quantity);
 
         $this->commandBus->dispatch($changeCartItemQuantity);
