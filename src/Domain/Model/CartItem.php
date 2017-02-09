@@ -4,10 +4,7 @@ declare(strict_types = 1);
 
 namespace SyliusCart\Domain\Model;
 
-use Broadway\EventSourcing\EventSourcedEntity;
 use Money\Money;
-use Ramsey\Uuid\Uuid;
-use Ramsey\Uuid\UuidInterface;
 use SyliusCart\Domain\ValueObject\CartItemQuantity;
 use SyliusCart\Domain\ValueObject\ProductCode;
 

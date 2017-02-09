@@ -7,7 +7,7 @@ namespace SyliusCart\Domain\Command;
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class AddCartItem
+final class AddProductToCart
 {
     /**
      * @var string
@@ -62,7 +62,7 @@ final class AddCartItem
      * @param int $price
      * @param string $productCurrencyCode
      *
-     * @return AddCartItem
+     * @return self
      */
     public static function create(
         string $cartId,

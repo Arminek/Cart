@@ -15,19 +15,19 @@
             <tag name="console.command" />
         </service>
 
-        <service id="sylius_cart.command.add_cart_item" class="SyliusCart\CartBundle\Command\AddCartItemCommand">
+        <service id="sylius_cart.command.add_cart_item" class="SyliusCart\CartBundle\Command\AddProductToCartCommand">
             <argument type="service" id="broadway.command_handling.command_bus" />
             <argument type="service" id="sylius_cart.uuid_generator.mocked" />
             <tag name="console.command" />
         </service>
 
-        <service id="sylius_cart.command.remove_cart_item" class="SyliusCart\CartBundle\Command\RemoveCartItemCommand">
+        <service id="sylius_cart.command.remove_cart_item" class="SyliusCart\CartBundle\Command\RemoveProductFromCartCommand">
             <argument type="service" id="broadway.command_handling.command_bus" />
             <argument type="service" id="sylius_cart.uuid_generator.mocked" />
             <tag name="console.command" />
         </service>
 
-        <service id="sylius_cart.command.change_cart_item_quantity" class="SyliusCart\CartBundle\Command\ChangeCartItemQuantityCommand">
+        <service id="sylius_cart.command.change_cart_item_quantity" class="SyliusCart\CartBundle\Command\ChangeProductQuantityCommand">
             <argument type="service" id="broadway.command_handling.command_bus" />
             <argument type="service" id="sylius_cart.uuid_generator.mocked" />
             <tag name="console.command" />

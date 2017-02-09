@@ -6,13 +6,13 @@ namespace SyliusCart\Domain\CommandHandler;
 
 use Broadway\CommandHandling\CommandHandler;
 use Broadway\Repository\RepositoryInterface;
-use SyliusCart\Domain\Command\RemoveCartItem;
+use SyliusCart\Domain\Command\RemoveProductFromCart;
 use SyliusCart\Domain\Model\CartContract;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class RemoveCartItemCommandHandler extends CommandHandler
+final class RemoveProductFromCartCommandHandler extends CommandHandler
 {
     /**
      * @var RepositoryInterface
@@ -28,14 +28,14 @@ final class RemoveCartItemCommandHandler extends CommandHandler
     }
 
     /**
-     * @param RemoveCartItem $command
+     * @param RemoveProductFromCart $command
      */
-    public function handleRemoveCartItem(RemoveCartItem $command): void
+    public function handleRemoveProductFromCart(RemoveProductFromCart $command): void
     {
         /** @var CartContract $cart */
         $cart = $this->cartRepository->load($command->getCartId());
 
-        $cart->removeCartItem($command->getCartItemId());
+        $cart->removeProductFromCart($command->getProductCode());
 
         $this->cartRepository->save($cart);
     }

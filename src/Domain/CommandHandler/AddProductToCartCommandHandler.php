@@ -6,13 +6,13 @@ namespace SyliusCart\Domain\CommandHandler;
 
 use Broadway\CommandHandling\CommandHandler;
 use Broadway\Repository\RepositoryInterface;
-use SyliusCart\Domain\Command\AddCartItem;
+use SyliusCart\Domain\Command\AddProductToCart;
 use SyliusCart\Domain\Model\CartContract;
 
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class AddCartItemCommandHandler extends CommandHandler
+final class AddProductToCartCommandHandler extends CommandHandler
 {
     /**
      * @var RepositoryInterface
@@ -28,14 +28,14 @@ final class AddCartItemCommandHandler extends CommandHandler
     }
 
     /**
-     * @param AddCartItem $command
+     * @param AddProductToCart $command
      */
-    public function handleAddCartItem(AddCartItem $command): void
+    public function handleAddProductToCart(AddProductToCart $command): void
     {
         /** @var CartContract $cart */
         $cart = $this->cartRepository->load($command->getCartId());
 
-        $cart->addCartItem($command->getProductCode(), $command->getQuantity(), $command->getPrice(), $command->getProductCurrencyCode());
+        $cart->addProductToCart($command->getProductCode(), $command->getQuantity(), $command->getPrice(), $command->getProductCurrencyCode());
 
         $this->cartRepository->save($cart);
     }

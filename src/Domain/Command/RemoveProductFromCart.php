@@ -7,7 +7,7 @@ namespace SyliusCart\Domain\Command;
 /**
  * @author Arkadiusz Krakowiak <arkadiusz.k.e@gmail.com>
  */
-final class RemoveCartItem
+final class RemoveProductFromCart
 {
     /**
      * @var string
@@ -17,27 +17,27 @@ final class RemoveCartItem
     /**
      * @var string
      */
-    private $cartItemId;
+    private $productCode;
 
     /**
      * @param string $cartId
-     * @param string $cartItemId
+     * @param string $productCode
      */
-    private function __construct(string $cartId, string $cartItemId)
+    private function __construct(string $cartId, string $productCode)
     {
         $this->cartId = $cartId;
-        $this->cartItemId = $cartItemId;
+        $this->productCode = $productCode;
     }
 
     /**
      * @param string $cartId
-     * @param string $cartItemId
+     * @param string $productCode
      *
-     * @return RemoveCartItem
+     * @return self
      */
-    public static function create(string $cartId, string $cartItemId): self
+    public static function create(string $cartId, string $productCode): self
     {
-        return new self($cartId, $cartItemId);
+        return new self($cartId, $productCode);
     }
 
     /**
@@ -51,8 +51,8 @@ final class RemoveCartItem
     /**
      * @return string
      */
-    public function getCartItemId(): string
+    public function getProductCode(): string
     {
-        return $this->cartItemId;
+        return $this->productCode;
     }
 }
