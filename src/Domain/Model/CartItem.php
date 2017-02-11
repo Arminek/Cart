@@ -56,6 +56,19 @@ final class CartItem
     }
 
     /**
+     * @param CartItem $cartItem
+     *
+     * @return CartItem
+     */
+    public function merge(CartItem $cartItem): self
+    {
+        $newQuantity = $this->quantity->add($cartItem->quantity());
+        $newUnitPrice = $cartItem->unitPrice();
+
+        return new self($cartItem->productCode(), $newQuantity, $newUnitPrice);
+    }
+
+    /**
      * @return ProductCode
      */
     public function productCode(): ProductCode

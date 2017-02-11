@@ -42,6 +42,19 @@ final class CartItemsSpec extends ObjectBehavior
         $this->exists($cartItem)->shouldReturn(true);
     }
 
+    function it_can_merge_existing_cart_items()
+    {
+        $mugItem = CartItem::create(ProductCode::fromString('Mug'), CartItemQuantity::create(2), Money::USD(10));
+        $sameMugItem = CartItem::create(ProductCode::fromString('Mug'), CartItemQuantity::create(4), Money::USD(15));
+
+        $this->add($mugItem);
+        $this->add($sameMugItem);
+
+        $this->findOneByProductCode(ProductCode::fromString('Mug'))->shouldBeLike(
+            CartItem::create(ProductCode::fromString('Mug'), CartItemQuantity::create(6), Money::USD(15))
+        );
+    }
+
     function it_can_remove_existing_cart_item()
     {
         $cartItem = CartItem::create(ProductCode::fromString('Mug'), CartItemQuantity::create(2), Money::USD(10));
