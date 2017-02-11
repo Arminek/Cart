@@ -49,6 +49,15 @@ final class CartItems implements CartItemCollection
      */
     public function add(CartItem $cartItem): void
     {
+        if ($this->exists($cartItem)) {
+            /** @var CartItem $existingCartItem */
+            $existingCartItem = $this->items->offsetGet((string) $cartItem->productCode());
+            $newCartItem = $existingCartItem->merge($cartItem);
+            $this->items->offsetSet((string) $newCartItem->productCode(), $newCartItem);
+
+            return;
+        }
+
         $this->items->offsetSet((string) $cartItem->productCode(), $cartItem);
     }
 
